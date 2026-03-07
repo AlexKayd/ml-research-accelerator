@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: ml-platform-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: "Europe/Moscow"  
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./sql:/docker-entrypoint-initdb.d:ro
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  user_service:
+      build: ./user_service
+      container_name: ml-platform-user
+      restart: unless-stopped
+      ports:
+        - "8001:8001"
+      env_file:
+        - .env
+      environment:
+        POSTGRES_HOST: postgres
+        PYTHONDONTWRITEBYTECODE: "1"
+        PYTHONUNBUFFERED: "1"
+      depends_on:
+        postgres:
+          condition: service_healthy
+      networks:
+        - app-net
+      volumes:
+        - ./user_service/app:/app/app:ro
+
+volumes:
+  postgres_data:
+
+networks:
+  app-net:
+    driver: bridge

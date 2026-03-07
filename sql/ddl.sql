@@ -57,7 +57,7 @@ CREATE TRIGGER tsvector_update_trigger
     BEFORE INSERT OR UPDATE ON datasets
     FOR EACH ROW
     EXECUTE FUNCTION tsvector_update_trigger(
-        search_vector, 'russian', title, description
+        search_vector, 'pg_catalog.english', title, description
     );
 
 CREATE TRIGGER update_datasets_last_updated
@@ -65,7 +65,7 @@ CREATE TRIGGER update_datasets_last_updated
     FOR EACH ROW
     EXECUTE FUNCTION update_last_updated_column();
 
-UPDATE datasets SET search_vector = to_tsvector('russian', 
+UPDATE datasets SET search_vector = to_tsvector('english', 
     COALESCE(title, '') || ' ' || COALESCE(description, ''));
 
 
