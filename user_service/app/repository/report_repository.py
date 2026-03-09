@@ -46,6 +46,7 @@ class ReportRepository(IReportRepository):
                 DatasetORM.file_size_mb,
                 DatasetORM.download_url,
                 DatasetORM.repository_url,
+                DatasetORM.status.label("dataset_status"),
             )
             .join(DatasetORM, DatasetORM.dataset_id == ReportORM.dataset_id)
             .where(ReportORM.report_id.in_(report_ids))
@@ -70,6 +71,7 @@ class ReportRepository(IReportRepository):
                 "file_size_mb": float(row.file_size_mb) if row.file_size_mb else None,
                 "download_url": row.download_url,
                 "repository_url": row.repository_url,
+                "dataset_status": row.dataset_status,
                 "preview": {
                     "total_rows": content.get("total_rows") if content else None,
                     "total_columns": content.get("total_columns") if content else None,
@@ -98,6 +100,7 @@ class ReportRepository(IReportRepository):
                 DatasetORM.file_size_mb,
                 DatasetORM.download_url,
                 DatasetORM.repository_url,
+                DatasetORM.status.label("dataset_status"),
             )
             .join(DatasetORM, DatasetORM.dataset_id == ReportORM.dataset_id)
             .where(ReportORM.report_id == report_id)
@@ -122,6 +125,7 @@ class ReportRepository(IReportRepository):
             "file_size_mb": float(row.file_size_mb) if row.file_size_mb else None,
             "download_url": row.download_url,
             "repository_url": row.repository_url,
+            "dataset_status": row.dataset_status,
             "content": row.content,
         }
         

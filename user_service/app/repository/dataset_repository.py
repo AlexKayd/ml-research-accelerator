@@ -48,6 +48,7 @@ class DatasetRepository(IDatasetRepository):
                 "tags": ds.tags or [],
                 "file_format": ds.file_format,
                 "file_size_mb": float(ds.file_size_mb) if ds.file_size_mb else None,
+                "status": ds.status,
                 "download_url": ds.download_url,
                 "repository_url": ds.repository_url
             }
@@ -102,6 +103,9 @@ class DatasetRepository(IDatasetRepository):
         if conditions:
             stmt = stmt.where(*conditions)
         
+        # В поиске по каталогу показываем только активные датасеты
+        stmt = stmt.where(DatasetORM.status == "active")
+        
         stmt = stmt.order_by(DatasetORM.last_updated.desc(), DatasetORM.dataset_id.desc())
         stmt = stmt.limit(limit).offset(offset)
         
@@ -125,6 +129,7 @@ class DatasetRepository(IDatasetRepository):
             "tags": dataset_orm.tags or [],
             "file_format": dataset_orm.file_format,
             "file_size_mb": float(dataset_orm.file_size_mb) if dataset_orm.file_size_mb else None,
+             "status": dataset_orm.status,
             "download_url": dataset_orm.download_url,
             "repository_url": dataset_orm.repository_url,
         }

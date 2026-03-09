@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class DatasetResponse(BaseModel):
     """Ответ API с полной информацией о датасете"""
-    
     model_config = ConfigDict(from_attributes=True)
     
     dataset_id: int = Field(
@@ -35,6 +34,11 @@ class DatasetResponse(BaseModel):
         None,
         description="Размер файла в Мб"
     )
+    status: str = Field(
+        ...,
+        description="Статус датасета (active или deleted)",
+        example="active"
+    )
     download_url: str = Field(
         ...,
         description="Ссылка для скачивания"
@@ -47,7 +51,6 @@ class DatasetResponse(BaseModel):
 
 class DatasetSearchRequest(BaseModel):
     """Запрос на поиск датасетов с фильтрацией"""
-    
     model_config = ConfigDict(from_attributes=True)
     
     query: Optional[str] = Field(

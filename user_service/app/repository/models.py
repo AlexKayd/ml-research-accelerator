@@ -118,6 +118,14 @@ class DatasetORM(Base):
         comment="Размер файла в мегабайтах"
     )
     
+    status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="active",
+        index=True,
+        comment="Статус датасета (active/deleted)"
+    )
+    
     download_url: Mapped[str] = mapped_column(
         Text,
         nullable=False,

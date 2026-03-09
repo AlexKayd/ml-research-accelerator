@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class ReportPreview(BaseModel):
     """Превью содержимого отчёта"""
-    
     model_config = ConfigDict(from_attributes=True)
     
     total_rows: Optional[int] = Field(
@@ -24,7 +23,6 @@ class ReportPreview(BaseModel):
 
 class UserReportResponse(BaseModel):
     """Информация об отчёте в истории пользователя (метаданные отчёта + метаданные датасета + превью)"""
-    
     model_config = ConfigDict(from_attributes=True)
     
     report_id: int = Field(
@@ -71,6 +69,10 @@ class UserReportResponse(BaseModel):
         None,
         description="Ссылка на репозиторий"
     )
+    dataset_status: str = Field(
+        ...,
+        description="Статус датасета (active или deleted)"
+    )
     
     preview: Optional[ReportPreview] = Field(
         None
@@ -79,7 +81,6 @@ class UserReportResponse(BaseModel):
 
 class ReportFullResponse(UserReportResponse):
     """Полный ответ API с содержимым отчёта"""
-    
     model_config = ConfigDict(from_attributes=True)
     
     content: Optional[Dict[str, Any]] = Field(

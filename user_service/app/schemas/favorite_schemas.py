@@ -1,9 +1,9 @@
 from typing import Optional, List
 from pydantic import BaseModel, Field, ConfigDict
 
+
 class FavoriteDatasetResponse(BaseModel):
     """Ответ API с информацией об избранном датасете"""
-    
     model_config = ConfigDict(from_attributes=True)
     
     dataset_id: int = Field(
@@ -41,4 +41,8 @@ class FavoriteDatasetResponse(BaseModel):
     repository_url: Optional[str] = Field(
         None,
         description="Ссылка на репозиторий"
+    )
+    status: str = Field(
+        ...,
+        description="Статус датасета (active или deleted)"
     )

@@ -14,6 +14,7 @@ CREATE TABLE datasets (
     tags TEXT[],
     file_format VARCHAR(20),
     file_size_mb DECIMAL(10,2),
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
     download_url TEXT NOT NULL,
     repository_url TEXT,
     file_hash VARCHAR(64),
@@ -73,6 +74,7 @@ CREATE INDEX idx_datasets_search_vector ON datasets USING GIN(search_vector);
 CREATE INDEX idx_datasets_source ON datasets(source);
 CREATE INDEX idx_datasets_file_size_mb ON datasets(file_size_mb);
 CREATE INDEX idx_datasets_file_format ON datasets(file_format);
+CREATE INDEX idx_datasets_status ON datasets(status);
 CREATE INDEX idx_datasets_last_updated ON datasets(last_updated DESC);
 CREATE INDEX idx_datasets_tags ON datasets USING GIN(tags);
 
