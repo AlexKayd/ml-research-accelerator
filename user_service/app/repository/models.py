@@ -215,6 +215,13 @@ class ReportORM(Base):
         comment="Содержимое отчёта в формате JSON"
     )
     
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        server_default=func.current_timestamp(),
+        onupdate=func.current_timestamp(),
+        comment="Дата и время последнего обновления отчёта"
+    )
+    
     dataset: Mapped["DatasetORM"] = relationship(
         "DatasetORM",
         back_populates="reports"

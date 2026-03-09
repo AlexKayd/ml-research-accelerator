@@ -29,7 +29,8 @@ CREATE TABLE reports (
     report_id BIGSERIAL PRIMARY KEY,
     dataset_id BIGINT NOT NULL REFERENCES datasets(dataset_id) ON DELETE CASCADE,
     status VARCHAR(20) DEFAULT 'processing',
-    content JSONB
+    content JSONB,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE favorite_datasets (

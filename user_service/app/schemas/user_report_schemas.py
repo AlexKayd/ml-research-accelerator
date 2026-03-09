@@ -37,6 +37,10 @@ class UserReportResponse(BaseModel):
         ...,
         description="Статус генерации отчёта"
     )
+    updated_at: Optional[datetime] = Field(
+        None,
+        description="Дата и время последнего обновления отчёта"
+    )
     title: str = Field(
         ...,
         description="Название датасета"

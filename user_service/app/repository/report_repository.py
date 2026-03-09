@@ -37,6 +37,7 @@ class ReportRepository(IReportRepository):
                 ReportORM.report_id,
                 ReportORM.dataset_id,
                 ReportORM.status,
+                ReportORM.updated_at,
                 ReportORM.content,
                 DatasetORM.title,
                 DatasetORM.source,
@@ -50,7 +51,7 @@ class ReportRepository(IReportRepository):
             )
             .join(DatasetORM, DatasetORM.dataset_id == ReportORM.dataset_id)
             .where(ReportORM.report_id.in_(report_ids))
-            .order_by(ReportORM.report_id.desc())
+            .order_by(ReportORM.updated_at.desc(), ReportORM.report_id.desc())
         )
         
         result = await self.session.execute(query)
@@ -63,6 +64,7 @@ class ReportRepository(IReportRepository):
                 "report_id": row.report_id,
                 "dataset_id": row.dataset_id,
                 "status": row.status,
+                "updated_at": row.updated_at.isoformat() if row.updated_at else None,
                 "title": row.title,
                 "source": row.source,
                 "description": row.description,
@@ -91,6 +93,7 @@ class ReportRepository(IReportRepository):
                 ReportORM.report_id,
                 ReportORM.dataset_id,
                 ReportORM.status,
+                ReportORM.updated_at,
                 ReportORM.content,
                 DatasetORM.title,
                 DatasetORM.source,
@@ -117,6 +120,7 @@ class ReportRepository(IReportRepository):
             "report_id": row.report_id,
             "dataset_id": row.dataset_id,
             "status": row.status,
+            "updated_at": row.updated_at.isoformat() if row.updated_at else None,
             "title": row.title,
             "source": row.source,
             "description": row.description,
