@@ -103,7 +103,6 @@ class DatasetRepository(IDatasetRepository):
         if conditions:
             stmt = stmt.where(*conditions)
         
-        # В поиске по каталогу показываем только активные датасеты
         stmt = stmt.where(DatasetORM.status == "active")
         
         stmt = stmt.order_by(DatasetORM.last_updated.desc(), DatasetORM.dataset_id.desc())

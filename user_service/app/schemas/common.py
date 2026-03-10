@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class MessageResponse(BaseModel):
     """Стандартный ответ с сообщением об успехе"""
-    
     model_config = ConfigDict(from_attributes=True)
     
     message: str = Field(
@@ -15,7 +14,6 @@ class MessageResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     """Стандартизированный ответ с ошибкой"""
-    
     model_config = ConfigDict(from_attributes=True)
     
     status: str = Field(
@@ -38,7 +36,6 @@ class ErrorResponse(BaseModel):
 
 class PaginatedResponse(BaseModel):
     """Ответ API с пагинацией"""
-    
     model_config = ConfigDict(from_attributes=True)
     
     items: List[Any] = Field(

@@ -9,7 +9,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      TZ: "Europe/Moscow"  
+      TZ: "Europe/Moscow"
+      PGTZ: "Europe/Moscow"
+    command: postgres -c timezone='Europe/Moscow'
     ports:
       - "5433:5432"
     volumes:

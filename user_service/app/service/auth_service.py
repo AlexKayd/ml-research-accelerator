@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from typing import Tuple
 from jose import JWTError, ExpiredSignatureError
 from app.domain.user import User, UserCreate, UserLogin, UserProfile
@@ -54,7 +53,6 @@ class AuthService:
             user_id=None,
             login=user_create.login,
             hashed_password=hashed_password,
-            created_at=datetime.now()
         )
         
         created_user = await self.user_repository.create(user)

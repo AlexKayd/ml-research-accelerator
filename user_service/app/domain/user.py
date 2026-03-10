@@ -4,6 +4,7 @@ from typing import Optional
 import re
 import time
 
+
 def validate_password(password: str) -> None:
     """Валидирует сложность пароля
         - Минимум 8 символов
@@ -40,7 +41,7 @@ class User:
     login: str
     hashed_password: str
     user_id: Optional[int] = None
-    created_at: datetime = field(default_factory=datetime.now)
+    created_at: Optional[datetime] = None
     
     def __post_init__(self) -> None:
         validate_login(self.login)

@@ -27,7 +27,6 @@ class UserRepository(IUserRepository):
         user_orm = UserORM(
             login=user.login,
             hashed_password=user.hashed_password,
-            created_at=user.created_at
         )
         
         self.session.add(user_orm)
