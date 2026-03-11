@@ -18,7 +18,7 @@ CREATE TABLE datasets (
     download_url TEXT NOT NULL,
     repository_url TEXT,
     file_hash VARCHAR(64),
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    source_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     search_vector TSVECTOR,
     
@@ -46,26 +46,12 @@ CREATE TABLE users_reports (
 );
 
 
-CREATE OR REPLACE FUNCTION update_last_updated_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.last_updated = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-
 CREATE TRIGGER tsvector_update_trigger
     BEFORE INSERT OR UPDATE ON datasets
     FOR EACH ROW
     EXECUTE FUNCTION tsvector_update_trigger(
         search_vector, 'pg_catalog.english', title, description
     );
-
-CREATE TRIGGER update_datasets_last_updated
-    BEFORE UPDATE ON datasets
-    FOR EACH ROW
-    EXECUTE FUNCTION update_last_updated_column();
 
 UPDATE datasets SET search_vector = to_tsvector('english', 
     COALESCE(title, '') || ' ' || COALESCE(description, ''));
@@ -76,7 +62,7 @@ CREATE INDEX idx_datasets_source ON datasets(source);
 CREATE INDEX idx_datasets_file_size_mb ON datasets(file_size_mb);
 CREATE INDEX idx_datasets_file_format ON datasets(file_format);
 CREATE INDEX idx_datasets_status ON datasets(status);
-CREATE INDEX idx_datasets_last_updated ON datasets(last_updated DESC);
+CREATE INDEX idx_datasets_source_updated_at ON datasets(source_updated_at DESC);
 CREATE INDEX idx_datasets_tags ON datasets USING GIN(tags);
 
 CREATE INDEX idx_reports_dataset_id ON reports(dataset_id);

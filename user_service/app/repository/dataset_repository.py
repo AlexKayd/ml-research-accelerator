@@ -105,7 +105,7 @@ class DatasetRepository(IDatasetRepository):
         
         stmt = stmt.where(DatasetORM.status == "active")
         
-        stmt = stmt.order_by(DatasetORM.last_updated.desc(), DatasetORM.dataset_id.desc())
+        stmt = stmt.order_by(DatasetORM.source_updated_at.desc(), DatasetORM.dataset_id.desc())
         stmt = stmt.limit(limit).offset(offset)
         
         result = await self.session.execute(stmt)

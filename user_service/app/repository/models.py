@@ -144,11 +144,10 @@ class DatasetORM(Base):
         comment="SHA-256 хеш файла"
     )
     
-    last_updated: Mapped[datetime] = mapped_column(
+    source_updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
-        onupdate=func.current_timestamp(),
-        comment="Дата последнего обновления датасета"
+        comment="Дата обновления в источнике (из источника, не обновляется при UPDATE)"
     )
     
     search_vector: Mapped[Optional[str]] = mapped_column(
@@ -175,7 +174,7 @@ class DatasetORM(Base):
         Index("idx_datasets_tags", "tags", postgresql_using="gin"),
         Index("idx_datasets_file_size_mb", "file_size_mb"),
         Index("idx_datasets_file_format", "file_format"),
-        Index("idx_datasets_last_updated", "last_updated", postgresql_ops={"last_updated": "DESC"}),
+        Index("idx_datasets_source_updated_at", "source_updated_at", postgresql_ops={"source_updated_at": "DESC"}),
         {"comment": "Каталог датасетов из внешних репозиториев"}
     )
     
