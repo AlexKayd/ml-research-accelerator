@@ -14,6 +14,7 @@ CREATE TABLE datasets (
     tags TEXT[],
     file_format VARCHAR(20),
     file_size_mb DECIMAL(10,2),
+    structure_type VARCHAR(20) NOT NULL DEFAULT 'single',
     status VARCHAR(20) NOT NULL DEFAULT 'active',
     download_url TEXT NOT NULL,
     repository_url TEXT,

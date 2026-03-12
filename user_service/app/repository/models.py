@@ -118,6 +118,13 @@ class DatasetORM(Base):
         comment="Размер файла в мегабайтах"
     )
     
+    structure_type: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="single",
+        comment="Тип структуры датасета (single/archive/multifile)"
+    )
+    
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
