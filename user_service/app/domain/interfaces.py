@@ -54,47 +54,49 @@ class IDatasetRepository(ABC):
 
 
 class IReportRepository(ABC):
-    
+
     @abstractmethod
     async def exists(self, report_id: int) -> bool:
         """Проверяет существование отчёта по айди"""
         pass
-    
+
+    @abstractmethod
+    async def get_metadata_for_user_history(self, user_id: int) -> List[dict]:
+        """Отчёты из истории пользователя (users_reports по report_id)"""
+        pass
+
     @abstractmethod
     async def get_metadata_batch(self, report_ids: List[int]) -> List[dict]:
-        """Получает метаданные нескольких отчётов по айди"""
+        """Метаданные нескольких отчётов по report_id"""
         pass
-    
+
     @abstractmethod
     async def get_full_metadata(self, report_id: int) -> Optional[dict]:
-        """Получает полную метаинформацию по одному отчёту"""
+        """Полная метаинформация по одному отчёту"""
         pass
 
 
 class IUserReportRepository(ABC):
-    
+    """История: (user_id, report_id) — схема users_reports."""
+
     @abstractmethod
-    async def add(
-        self, 
-        user_id: int, 
-        report_id: int
-    ) -> UserReport:
+    async def add(self, user_id: int, report_id: int) -> UserReport:
         """Сохраняет отчёт в историю пользователя"""
         pass
-    
+
     @abstractmethod
     async def remove(self, user_id: int, report_id: int) -> bool:
-        """Удаляет отчёт из истории пользователя"""
+        """Удаляет отчёт из истории"""
         pass
 
     @abstractmethod
     async def get_all_by_user(self, user_id: int) -> List[UserReport]:
-        """Получает все отчёты в истории пользователя"""
+        """Все записи истории пользователя"""
         pass
-    
+
     @abstractmethod
     async def exists(self, user_id: int, report_id: int) -> bool:
-        """Проверяет наличие отчёта в истории пользователя"""
+        """Проверяет наличие отчёта в истории"""
         pass
 
 

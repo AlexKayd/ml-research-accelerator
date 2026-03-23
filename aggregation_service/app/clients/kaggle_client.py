@@ -515,7 +515,7 @@ class KaggleClient(BaseClient):
                 description = description[:max_desc_length - 3] + '...'
             
             return {
-                'title': title[:500],
+                'title': title,
                 'description': description,
                 'keywords': _keywords_from_kaggle_metadata(raw),
                 'lastUpdated': last_updated,

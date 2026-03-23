@@ -4,90 +4,51 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 class ReportPreview(BaseModel):
-    """Превью содержимого отчёта"""
+    """Превью (при появлении метаданных из EDA); в БД не хранится."""
+
     model_config = ConfigDict(from_attributes=True)
-    
-    total_rows: Optional[int] = Field(
-        None,
-        description="Количество строк в датасете"
-    )
-    total_columns: Optional[int] = Field(
-        None,
-        description="Количество столбцов"
-    )
-    missing_values: Optional[int] = Field(
-        None,
-        description="Количество пропущенных значений"
-    )
+
+    total_rows: Optional[int] = Field(None, description="Количество строк")
+    total_columns: Optional[int] = Field(None, description="Количество столбцов")
+    missing_values: Optional[int] = Field(None, description="Пропуски")
 
 
 class UserReportResponse(BaseModel):
-    """Информация об отчёте в истории пользователя (метаданные отчёта + метаданные датасета + превью)"""
+    """Метаданные отчёта + датасета; тело отчёта — в MinIO (bucket/object_key)."""
+
     model_config = ConfigDict(from_attributes=True)
-    
-    report_id: int = Field(
-        ...,
-        description="Уникальный идентификатор отчёта"
-    )
-    dataset_id: int = Field(
-        ...,
-        description="Уникальный идентификатор датасета"
-    )
-    status: str = Field(
-        ...,
-        description="Статус генерации отчёта"
-    )
-    updated_at: Optional[datetime] = Field(
+
+    report_id: int = Field(..., description="Идентификатор отчёта")
+    file_id: int = Field(..., description="Файл датасета, для которого отчёт")
+    bucket_name: str = Field(..., description="Бакет объектного хранилища")
+    object_key: str = Field(..., description="Ключ объекта в хранилище")
+    dataset_id: int = Field(..., description="Идентификатор датасета")
+    status: str = Field(..., description="Статус отчёта (completed, failed)")
+    updated_at: Optional[datetime] = Field(None, description="Обновление отчёта")
+    title: str = Field(..., description="Название датасета")
+    source: str = Field(..., description="Источник данных")
+    description: Optional[str] = Field(None, description="Описание датасета")
+    tags: Optional[List[str]] = Field(None, description="Теги")
+    dataset_format: Optional[str] = Field(None, description="Формат данных датасета")
+    dataset_size_kb: Optional[float] = Field(
         None,
-        description="Дата и время последнего обновления отчёта"
+        description="Суммарный размер файлов датасета, КБ",
     )
-    title: str = Field(
-        ...,
-        description="Название датасета"
-    )
-    source: str = Field(
-        ...,
-        description="Источник данных (kaggle, uci, huggingface)"
-    )
-    description: Optional[str] = Field(
-        None,
-        description="Описание датасета"
-    )
-    tags: Optional[List[str]] = Field(
-        None,
-        description="Теги датасета"
-    )
-    file_format: Optional[str] = Field(
-        None,
-        description="Формат файла (CSV, JSON)"
-    )
-    file_size_mb: Optional[float] = Field(
-        None,
-        description="Размер файла в Мб"
-    )
-    download_url: str = Field(
-        ...,
-        description="Ссылка для скачивания"
-    )
-    repository_url: Optional[str] = Field(
-        None,
-        description="Ссылка на репозиторий"
-    )
+    download_url: Optional[str] = Field(None, description="Ссылка для скачивания")
+    repository_url: Optional[str] = Field(None, description="Страница в репозитории")
     dataset_status: str = Field(
         ...,
-        description="Статус датасета (active или deleted)"
+        description="Статус датасета (active, error, deleted)",
     )
-    
-    preview: Optional[ReportPreview] = Field(
-        None
-    )
+    preview: Optional[ReportPreview] = Field(None)
 
 
 class ReportFullResponse(UserReportResponse):
-    """Полный ответ API с содержимым отчёта"""
+    """Полный ответ; content подставляется сервисом загрузки из MinIO при необходимости."""
+
     model_config = ConfigDict(from_attributes=True)
-    
+
     content: Optional[Dict[str, Any]] = Field(
         None,
-        description="Полное содержимое EDA-отчёта"
+        description="Содержимое EDA (если загружено из хранилища)",
     )

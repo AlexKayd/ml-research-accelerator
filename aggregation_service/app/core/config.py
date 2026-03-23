@@ -34,15 +34,7 @@ class Settings(BaseSettings):
             f"{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/"
             f"{self.POSTGRES_DB}"
         )
-    
-    @property
-    def DATABASE_URL_SYNC(self) -> str:
-        return (
-            f"postgresql://"
-            f"{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"
-            f"{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/"
-            f"{self.POSTGRES_DB}"
-        )
+
     
     @field_validator('POSTGRES_PASSWORD')
     @classmethod

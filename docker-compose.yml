@@ -1,6 +1,5 @@
-version: '3.8'
-
 services:
+
   postgres:
     image: postgres:17
     container_name: ml-platform-db
@@ -25,29 +24,179 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: ml-platform-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
   user_service:
-      build: ./user_service
-      container_name: ml-platform-user
-      restart: unless-stopped
-      ports:
-        - "8001:8001"
-      env_file:
-        - .env
-      environment:
-        POSTGRES_HOST: postgres
-        PYTHONDONTWRITEBYTECODE: "1"
-        PYTHONUNBUFFERED: "1"
-      depends_on:
-        postgres:
-          condition: service_healthy
-      networks:
-        - app-net
-      volumes:
-        - ./user_service/app:/app/app:ro
+    build: ./user_service
+    container_name: ml-platform-user
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      TZ: "Europe/Moscow"
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-net
+    volumes:
+      - ./user_service/app:/app/app:ro
+
+  aggregation_service:
+    build: ./aggregation_service
+    container_name: ml-platform-aggregation
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    env_file:
+      - .env
+    environment:
+      TZ: "Europe/Moscow"
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      KAGGLE_USERNAME: ${KAGGLE_USERNAME}
+      KAGGLE_KEY: ${KAGGLE_KEY}
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-net
+    volumes:
+      - ./aggregation_service/app:/app/app:ro
+      - aggregation_temp:/app/temp
+    command:
+      - sh
+      - -c
+      - >
+        exec uvicorn app.cmd.main:app --host 0.0.0.0 --port $${API_PORT:-8002} --workers 1 --loop uvloop
+        --log-level $$(echo "$$LOG_LEVEL" | tr '[:upper:]' '[:lower:]')
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  aggregation_worker:
+    build: ./aggregation_service
+    container_name: ml-platform-aggregation-worker
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - >
+        exec celery -A app.core.celery_config worker
+        --loglevel $$(echo "$$LOG_LEVEL" | tr '[:upper:]' '[:lower:]')
+        --pool=prefork --concurrency ${CELERY_WORKER_CONCURRENCY:-2} -Q celery
+    env_file:
+      - .env
+    environment:
+      TZ: "Europe/Moscow"
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      KAGGLE_USERNAME: ${KAGGLE_USERNAME}
+      KAGGLE_KEY: ${KAGGLE_KEY}
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      aggregation_service:
+        condition: service_started
+    networks:
+      - app-net
+    volumes:
+      - ./aggregation_service/app:/app/app:ro
+      - aggregation_temp:/app/temp
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  aggregation_beat:
+    build: ./aggregation_service
+    container_name: ml-platform-aggregation-beat
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - >
+        exec celery -A app.core.celery_config beat
+        --loglevel $$(echo "$$LOG_LEVEL" | tr '[:upper:]' '[:lower:]')
+    env_file:
+      - .env
+    environment:
+      TZ: "Europe/Moscow"
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      KAGGLE_USERNAME: ${KAGGLE_USERNAME}
+      KAGGLE_KEY: ${KAGGLE_KEY}
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
+    depends_on:
+      redis:
+        condition: service_healthy
+      aggregation_service:
+        condition: service_started
+    networks:
+      - app-net
+    volumes:
+      - ./aggregation_service/app:/app/app:ro
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  aggregation_temp:
+    driver: local
 
 networks:
   app-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

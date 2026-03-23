@@ -2,9 +2,10 @@ from app.repository.models import (
     Base,
     UserORM,
     DatasetORM,
+    FileORM,
     ReportORM,
     FavoriteDatasetORM,
-    UserReportORM
+    UserReportORM,
 )
 from app.repository.user_repository import UserRepository
 from app.repository.dataset_repository import DatasetRepository
@@ -16,6 +17,7 @@ __all__ = [
     "Base",
     "UserORM",
     "DatasetORM",
+    "FileORM",
     "ReportORM",
     "FavoriteDatasetORM",
     "UserReportORM",

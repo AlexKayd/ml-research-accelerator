@@ -142,16 +142,16 @@ class FavoriteNotFoundError(DomainException):
 
 class ReportAlreadyExistsError(DomainException):
     """Исключение при повторном сохранении отчёта в историю"""
-    
+
     def __init__(self, user_id: int, report_id: int) -> None:
         super().__init__(
             message="Отчёт уже находится в истории",
             code="REPORT_ALREADY_EXISTS",
             details={
                 "user_id": user_id,
-                "report_id": report_id
+                "report_id": report_id,
             },
-            status_code=409
+            status_code=409,
         )
 
 

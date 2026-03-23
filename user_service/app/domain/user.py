@@ -136,16 +136,18 @@ class FavoriteDataset:
 
 @dataclass
 class UserReport:
+    """Связь пользователя с отчётом в истории (таблица users_reports)."""
+
     user_id: int
     report_id: int
-    
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, UserReport):
             return False
         return (
-            self.user_id == other.user_id and 
-            self.report_id == other.report_id
+            self.user_id == other.user_id
+            and self.report_id == other.report_id
         )
-    
+
     def __hash__(self) -> int:
         return hash((self.user_id, self.report_id))

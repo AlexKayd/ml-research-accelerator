@@ -1,9 +1,14 @@
 FROM python:3.11-slim
 
+ENV TZ=Europe/Moscow \
+    PIP_DEFAULT_TIMEOUT=180 \
+    PIP_NO_CACHE_DIR=1
+
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir --default-timeout=180 --retries=15 -r requirements.txt
 
 COPY . .
 
