@@ -58,6 +58,9 @@ class UpdateService:
         batch_size: Optional[int] = None,
         limit: Optional[int] = None,
         uci_skip_date_optimization: bool = False,
+        kaggle_skip_date_optimization: bool = False,
+        uci_force_hash_recalc_on_same_size: bool = False,
+        kaggle_force_hash_recalc_on_same_size: bool = False,
     ) -> None:
         s = get_settings()
         if limit is None:
@@ -73,6 +76,9 @@ class UpdateService:
         self._batch_size = batch_size
         self._limit = limit
         self._uci_skip_date_optimization = uci_skip_date_optimization
+        self._kaggle_skip_date_optimization = kaggle_skip_date_optimization
+        self._uci_force_hash_recalc_on_same_size = uci_force_hash_recalc_on_same_size
+        self._kaggle_force_hash_recalc_on_same_size = kaggle_force_hash_recalc_on_same_size
         self._max_file_size_kb = int(s.MAX_FILE_SIZE_KB)
 
         logger.debug(
@@ -434,6 +440,8 @@ class UpdateService:
                 return False
             return self._uci_should_skip_full_update_by_date(dataset, metadata)
         if self._source == 'kaggle':
+            if self._kaggle_skip_date_optimization:
+                return False
             return self._kaggle_should_skip_full_update_by_date(dataset, metadata)
 
         return False
@@ -590,6 +598,13 @@ class UpdateService:
                 )
             
             size_changed = abs(db_file.file_size_kb - current_size_kb) > 0.01
+
+            force_hash_recalc = False
+            if db_file.is_data:
+                if self._source == 'uci':
+                    force_hash_recalc = self._uci_force_hash_recalc_on_same_size
+                elif self._source == 'kaggle':
+                    force_hash_recalc = self._kaggle_force_hash_recalc_on_same_size
             
             if size_changed:
                 changes['size_changed'] = True
@@ -601,27 +616,35 @@ class UpdateService:
                 
                 logger.info(f"Изменился размер файла: {file_name}")
                 
-                if db_file.is_data:
-                    updated_file = await self._update_file_hash(
-                        dataset=dataset,
-                        file=db_file,
-                        temp_dir=temp_dir,
-                        download_path=await _ensure_dataset_archive(),
+            if db_file.is_data and (size_changed or force_hash_recalc):
+                if force_hash_recalc and not size_changed:
+                    logger.debug(
+                        "Принудительный пересчёт хеша data-файла без изменения размера: %s",
+                        file_name,
                     )
+
+                updated_file = await self._update_file_hash(
+                    dataset=dataset,
+                    file=db_file,
+                    temp_dir=temp_dir,
+                    download_path=await _ensure_dataset_archive(),
+                )
+                
+                if updated_file:
+                    changes['updated'].append(updated_file)
+                    changes['has_changes'] = True
                     
-                    if updated_file:
-                        changes['updated'].append(updated_file)
-                        
-                        self._eda_notifier.add_file_notification(
-                            event_type='file_updated',
-                            dataset_id=dataset.dataset_id,
-                            file_name=file_name,
-                            external_id=dataset.external_id,
-                            source=self._source
-                        )
-                        changes['eda_notifications_queued'] += 1
-                        
-                        logger.debug(f"Изменился хеш файла: {file_name}")
+                    self._eda_notifier.add_file_notification(
+                        event_type='file_updated',
+                        dataset_id=dataset.dataset_id,
+                        file_name=file_name,
+                        file_hash=updated_file.file_hash,
+                        external_id=dataset.external_id,
+                        source=self._source
+                    )
+                    changes['eda_notifications_queued'] += 1
+                    
+                    logger.debug(f"Изменился хеш файла: {file_name}")
         
         if changes['has_changes']:
             new_total_size = await self._repo.recalculate_dataset_size(dataset.dataset_id)

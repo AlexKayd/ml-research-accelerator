@@ -94,6 +94,15 @@ class Settings(BaseSettings):
     UCI_SKIP_DATE_OPTIMIZATION: bool = Field(
         default=False,
     )
+    KAGGLE_SKIP_DATE_OPTIMIZATION: bool = Field(
+        default=False,
+    )
+    UCI_FORCE_HASH_RECALC_ON_SAME_SIZE: bool = Field(
+        default=False,
+    )
+    KAGGLE_FORCE_HASH_RECALC_ON_SAME_SIZE: bool = Field(
+        default=False,
+    )
     AGGREGATION_BATCH_SIZE: int = Field(
         default=100,
     )
@@ -160,6 +169,9 @@ class Settings(BaseSettings):
         logger.info(f"  UCI_INTERVAL: {self.UCI_UPDATE_INTERVAL_DAYS} дней")
         logger.info(f"  UCI_CATALOG_FILTER_PYTHON: {self.UCI_CATALOG_FILTER_PYTHON}")
         logger.info(f"  UCI_SKIP_DATE_OPTIMIZATION: {self.UCI_SKIP_DATE_OPTIMIZATION}")
+        logger.info(f"  KAGGLE_SKIP_DATE_OPTIMIZATION: {self.KAGGLE_SKIP_DATE_OPTIMIZATION}")
+        logger.info(f"  UCI_FORCE_HASH_RECALC_ON_SAME_SIZE: {self.UCI_FORCE_HASH_RECALC_ON_SAME_SIZE}")
+        logger.info(f"  KAGGLE_FORCE_HASH_RECALC_ON_SAME_SIZE: {self.KAGGLE_FORCE_HASH_RECALC_ON_SAME_SIZE}")
         logger.info(f"  STARTUP_DELAY: {self.AGGREGATION_STARTUP_DELAY_MINUTES} мин")
         logger.info(f"  AGGREGATION_BATCH_SIZE: {self.AGGREGATION_BATCH_SIZE}")
         logger.info(f"  UPDATE_BATCH_SIZE: {self.UPDATE_BATCH_SIZE}")

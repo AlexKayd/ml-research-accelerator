@@ -40,6 +40,7 @@ async def _run_kaggle_update_async() -> Dict[str, Any]:
     
     try:
         async with get_db_session() as session:
+            settings = get_settings()
             repo = DatasetRepository(session)
             client = KaggleClient()
             file_processor = FileProcessor()
@@ -52,6 +53,8 @@ async def _run_kaggle_update_async() -> Dict[str, Any]:
                 file_processor=file_processor,
                 eda_notifier=eda_notifier,
                 source='kaggle',
+                kaggle_skip_date_optimization=settings.KAGGLE_SKIP_DATE_OPTIMIZATION,
+                kaggle_force_hash_recalc_on_same_size=settings.KAGGLE_FORCE_HASH_RECALC_ON_SAME_SIZE,
             )
             
             started_at = datetime.now()
@@ -201,6 +204,7 @@ async def _run_uci_update_async() -> Dict[str, Any]:
                 eda_notifier=eda_notifier,
                 source='uci',
                 uci_skip_date_optimization=settings.UCI_SKIP_DATE_OPTIMIZATION,
+                uci_force_hash_recalc_on_same_size=settings.UCI_FORCE_HASH_RECALC_ON_SAME_SIZE,
             )
             
             started_at = datetime.now()

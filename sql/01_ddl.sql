@@ -39,14 +39,15 @@ CREATE TABLE files (
 
 CREATE TABLE reports (
     report_id BIGSERIAL PRIMARY KEY,
-    file_id BIGINT NOT NULL,
-    bucket_name VARCHAR(255) NOT NULL,
-    object_key VARCHAR(512) NOT NULL,
+    file_id BIGINT NOT NULL UNIQUE,
+    bucket_name VARCHAR(255),
+    object_key VARCHAR(512),
     status VARCHAR(20) NOT NULL DEFAULT 'completed',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
-    CONSTRAINT chk_report_status CHECK (status IN ('completed', 'failed'))
+    error_message TEXT,
+
+    FOREIGN KEY (file_id) REFERENCES files(file_id),
+    CONSTRAINT chk_report_status CHECK (status IN ('completed', 'failed', 'processing', 'deleting'))
 );
 
 CREATE TABLE favorite_datasets (
@@ -99,3 +100,4 @@ CREATE INDEX idx_favorites_dataset_id ON favorite_datasets(dataset_id);
 
 CREATE INDEX idx_users_reports_user_id ON users_reports(user_id);
 CREATE INDEX idx_users_reports_report_id ON users_reports(report_id);
+

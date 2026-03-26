@@ -26,6 +26,7 @@ class EDANotifier:
         dataset_id: int,
         file_id: Optional[int] = None,
         file_name: Optional[str] = None,
+        file_hash: Optional[str] = None,
         external_id: Optional[str] = None,
         source: Optional[str] = None
     ) -> None:
@@ -35,6 +36,7 @@ class EDANotifier:
             'dataset_id': dataset_id,
             'file_id': file_id,
             'file_name': file_name,
+            'file_hash': file_hash,
             'external_id': external_id,
             'source': source,
             'created_at': datetime.now().isoformat()
@@ -75,6 +77,7 @@ class EDANotifier:
                         'dataset_id': notification['dataset_id'],
                         'file_id': notification.get('file_id'),
                         'file_name': notification.get('file_name'),
+                        'file_hash': notification.get('file_hash'),
                         'external_id': notification.get('external_id'),
                         'source': notification.get('source')
                     },
@@ -108,8 +111,3 @@ class EDANotifier:
     def get_pending_count(self) -> int:
         """Возвращает количество накопленных уведомлений"""
         return len(self._pending_notifications)
-    
-    def reset(self) -> None:
-        """Сбрасывает состояние уведомителя"""
-        self._pending_notifications.clear()
-        logger.debug("EDANotifier сброшен")
