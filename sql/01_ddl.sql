@@ -42,8 +42,10 @@ CREATE TABLE reports (
     file_id BIGINT NOT NULL UNIQUE,
     bucket_name VARCHAR(255),
     object_key VARCHAR(512),
+    input_file_hash VARCHAR(255),
     status VARCHAR(20) NOT NULL DEFAULT 'completed',
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    processing_started_at TIMESTAMP,
     error_message TEXT,
 
     FOREIGN KEY (file_id) REFERENCES files(file_id),
@@ -94,6 +96,7 @@ CREATE INDEX idx_files_dataset_id ON files(dataset_id);
 CREATE INDEX idx_reports_file_id ON reports(file_id);
 CREATE INDEX idx_reports_status ON reports(status);
 CREATE INDEX idx_reports_updated_at ON reports(updated_at DESC);
+CREATE INDEX idx_reports_processing_started_at ON reports(processing_started_at DESC);
 
 CREATE INDEX idx_favorites_user_id ON favorite_datasets(user_id);
 CREATE INDEX idx_favorites_dataset_id ON favorite_datasets(dataset_id);
