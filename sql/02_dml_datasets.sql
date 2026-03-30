@@ -1,4 +1,3 @@
--- Auto-generated from dump.sql
 BEGIN;
 
 INSERT INTO public.datasets VALUES (1, 'uci', '162', 'Forest Fires', 'This is a difficult regression task, where the aim is to predict the burned area of forest fires, in the northeast region of Portugal, by using meteorological and other data (see details at: http://www.dsi.uminho.pt/~pcortez/forestfires).

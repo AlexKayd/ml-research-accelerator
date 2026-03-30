@@ -47,11 +47,8 @@ CREATE TABLE reports (
     updated_at TIMESTAMP,
     processing_started_at TIMESTAMP,
     error_message TEXT,
-    -- user_id для уведомления user_service / SSE после генерации (сохраняется при пользовательском запросе; не затирается агрегацией)
-    last_notify_user_id BIGINT,
 
     FOREIGN KEY (file_id) REFERENCES files(file_id),
-    FOREIGN KEY (last_notify_user_id) REFERENCES users(user_id) ON DELETE SET NULL,
     CONSTRAINT chk_report_status CHECK (status IN ('completed', 'failed', 'processing', 'deleting'))
 );
 
@@ -106,4 +103,3 @@ CREATE INDEX idx_favorites_dataset_id ON favorite_datasets(dataset_id);
 
 CREATE INDEX idx_users_reports_user_id ON users_reports(user_id);
 CREATE INDEX idx_users_reports_report_id ON users_reports(report_id);
-

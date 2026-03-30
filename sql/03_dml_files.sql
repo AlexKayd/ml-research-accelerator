@@ -1,4 +1,3 @@
--- Auto-generated from dump.sql
 BEGIN;
 INSERT INTO public.files VALUES (1, 1, 'forestfires.csv', 24.88, '0d6586a1fa52f55bef48578aef14eb97273f1e9330e1a53423df497a77065253', true, '2026-03-22 02:27:00.636359');
 INSERT INTO public.files VALUES (2, 1, 'forestfires.names', 3.34, NULL, false, '2026-03-22 02:27:00.63638');
