@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+
+    EDA_SERVICE_INTERNAL_TOKEN: str = ""
     
     @property
     def DATABASE_URL(self) -> str:

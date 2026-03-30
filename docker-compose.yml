@@ -41,6 +41,22 @@ services:
       retries: 5
     command: redis-server --appendonly yes
 
+  minio:
+    image: minio/minio:latest
+    container_name: ml-platform-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - app-net
+
   user_service:
     build: ./user_service
     container_name: ml-platform-user
@@ -49,6 +65,7 @@ services:
       - "8001:8001"
     env_file:
       - .env
+      - ./user_service/.env
     environment:
       TZ: "Europe/Moscow"
       POSTGRES_HOST: postgres
@@ -73,6 +90,7 @@ services:
       - "8002:8002"
     env_file:
       - .env
+      - ./aggregation_service/.env
     environment:
       TZ: "Europe/Moscow"
       POSTGRES_HOST: postgres
@@ -123,6 +141,7 @@ services:
         --pool=prefork --concurrency ${CELERY_WORKER_CONCURRENCY:-2} -Q celery
     env_file:
       - .env
+      - ./aggregation_service/.env
     environment:
       TZ: "Europe/Moscow"
       POSTGRES_HOST: postgres
@@ -164,6 +183,7 @@ services:
         --loglevel $$(echo "$$LOG_LEVEL" | tr '[:upper:]' '[:lower:]')
     env_file:
       - .env
+      - ./aggregation_service/.env
     environment:
       TZ: "Europe/Moscow"
       POSTGRES_HOST: postgres
@@ -186,12 +206,244 @@ services:
     volumes:
       - ./aggregation_service/app:/app/app:ro
 
+  eda_service:
+    build: ./eda_service
+    container_name: ml-platform-eda
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
+    env_file:
+      - .env
+      - ./eda_service/.env
+    environment:
+      TZ: Europe/Moscow
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      MINIO_ENDPOINT: minio:9000
+      MINIO_PUBLIC_BASE_URL: http://localhost:9000
+      USER_SERVICE_URL: http://user_service:8001
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      user_service:
+        condition: service_started
+    networks:
+      - app-net
+    volumes:
+      - ./eda_service/app:/app/app:ro
+    command:
+      - sh
+      - -c
+      - >
+        exec uvicorn app.cmd.main:app --host 0.0.0.0 --port $${API_PORT:-8003} --workers 1 --loop uvloop
+        --log-level $$(echo "$$LOG_LEVEL" | tr '[:upper:]' '[:lower:]')
+
+  eda_worker:
+    build: ./eda_service
+    container_name: ml-platform-eda-worker
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - >
+        exec celery -A app.core.celery_config worker
+        --loglevel $$(echo "$$LOG_LEVEL" | tr '[:upper:]' '[:lower:]')
+        --pool=prefork --concurrency $${CELERY_WORKER_CONCURRENCY:-2}
+        -Q $${CELERY_EDA_QUEUE:-eda}
+    env_file:
+      - .env
+      - ./eda_service/.env
+    environment:
+      TZ: Europe/Moscow
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      MINIO_ENDPOINT: minio:9000
+      MINIO_PUBLIC_BASE_URL: http://localhost:9000
+      USER_SERVICE_URL: http://user_service:8001
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      eda_service:
+        condition: service_started
+    networks:
+      - app-net
+    volumes:
+      - ./eda_service/app:/app/app:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  eda_worker_gen:
+    build: ./eda_service
+    container_name: ml-platform-eda-worker-gen
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - >
+        exec celery -A app.core.celery_config worker
+        --loglevel $$(echo "$$LOG_LEVEL" | tr '[:upper:]' '[:lower:]')
+        --pool=prefork --concurrency $${CELERY_GEN_WORKER_CONCURRENCY:-2}
+        -Q $${CELERY_GEN_QUEUE:-eda_gen}
+    env_file:
+      - .env
+      - ./eda_service/.env
+    environment:
+      TZ: Europe/Moscow
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      MINIO_ENDPOINT: minio:9000
+      MINIO_PUBLIC_BASE_URL: http://localhost:9000
+      USER_SERVICE_URL: http://user_service:8001
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      eda_service:
+        condition: service_started
+    networks:
+      - app-net
+    volumes:
+      - ./eda_service/app:/app/app:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4G
+        reservations:
+          cpus: "1.0"
+          memory: 1G
+
+  eda_worker_waiter:
+    build: ./eda_service
+    container_name: ml-platform-eda-worker-waiter
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - >
+        exec celery -A app.core.celery_config worker
+        --loglevel $$(echo "$$LOG_LEVEL" | tr '[:upper:]' '[:lower:]')
+        --pool=prefork --concurrency $${CELERY_WORKER_CONCURRENCY:-2}
+        -Q $${CELERY_WAITER_QUEUE:-eda_waiter}
+    env_file:
+      - .env
+      - ./eda_service/.env
+    environment:
+      TZ: Europe/Moscow
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      MINIO_ENDPOINT: minio:9000
+      MINIO_PUBLIC_BASE_URL: http://localhost:9000
+      USER_SERVICE_URL: http://user_service:8001
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      eda_service:
+        condition: service_started
+    networks:
+      - app-net
+    volumes:
+      - ./eda_service/app:/app/app:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  eda_beat:
+    build: ./eda_service
+    container_name: ml-platform-eda-beat
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - >
+        exec celery -A app.core.celery_config beat
+        --loglevel $$(echo "$$LOG_LEVEL" | tr '[:upper:]' '[:lower:]')
+    env_file:
+      - .env
+      - ./eda_service/.env
+    environment:
+      TZ: Europe/Moscow
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      MINIO_ENDPOINT: minio:9000
+      USER_SERVICE_URL: http://user_service:8001
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
+    depends_on:
+      redis:
+        condition: service_healthy
+      eda_service:
+        condition: service_started
+    networks:
+      - app-net
+    volumes:
+      - ./eda_service/app:/app/app:ro
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
   aggregation_temp:
+    driver: local
+  minio_data:
     driver: local
 
 networks:

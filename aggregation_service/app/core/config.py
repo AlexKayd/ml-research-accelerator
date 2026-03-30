@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     
-    PROJECT_NAME: str = Field(default="ML Research Accelerator")
+    PROJECT_NAME: str = Field(default="ML Research Aggregation Service")
     VERSION: str = Field(default="1.0.0")
     DEBUG: bool = Field(default=False)
     

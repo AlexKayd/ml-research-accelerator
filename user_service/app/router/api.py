@@ -5,6 +5,7 @@ from app.handler.user_handler import router as user_router
 from app.handler.favorite_handler import router as favorite_router
 from app.handler.dataset_handler import router as dataset_router
 from app.handler.report_handler import router as report_router
+from app.handler.eda_internal_handler import router as eda_internal_router
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,11 @@ api_router.include_router(
     report_router,
     prefix="/users",
     tags=["История отчётов"],
+)
+
+api_router.include_router(
+    eda_internal_router,
+    prefix="",
 )
 
 api_router.include_router(

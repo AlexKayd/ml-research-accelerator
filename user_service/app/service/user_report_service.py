@@ -2,7 +2,11 @@ import logging
 
 from app.domain.user import UserReport
 from app.domain.interfaces import IUserReportRepository, IReportRepository
-from app.domain.exceptions import ReportNotInHistoryError, ReportNotFoundError
+from app.domain.exceptions import (
+    ReportAlreadyExistsError,
+    ReportNotInHistoryError,
+    ReportNotFoundError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +41,20 @@ class UserReportService:
             report_id,
         )
         return link
+
+    async def save_report_idempotent(self, user_id: int, report_id: int) -> UserReport:
+        """
+        Сохраняет отчёт в историю; при уже существующей связи возвращает успех (идемпотентность для EDA).
+        """
+        try:
+            return await self.save_report(user_id, report_id)
+        except ReportAlreadyExistsError:
+            logger.info(
+                "Связь уже есть (идемпотентность): user_id=%s report_id=%s",
+                user_id,
+                report_id,
+            )
+            return UserReport(user_id=user_id, report_id=report_id)
 
     async def remove_from_history(self, user_id: int, report_id: int) -> None:
         logger.info(
