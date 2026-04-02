@@ -1,14 +1,13 @@
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-from fastapi import FastAPI, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.database import close_db, init_db
-from app.core.health import get_health_status
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
+from app.handler.system_handler import router as system_router
 from app.router import api_router
 import uvicorn
 
@@ -72,51 +71,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(system_router, tags=["System"])
 app.include_router(api_router, prefix="/api")
 register_exception_handlers(app)
-
-
-@app.get("/health", status_code=status.HTTP_200_OK)
-async def health_check() -> JSONResponse:
-    health_status = await get_health_status()
-    status_code = (
-        status.HTTP_200_OK
-        if health_status.get("status") == "ok"
-        else status.HTTP_503_SERVICE_UNAVAILABLE
-    )
-    return JSONResponse(status_code=status_code, content=health_status)
-
-
-@app.get("/", status_code=status.HTTP_200_OK)
-async def root() -> JSONResponse:
-    return JSONResponse(
-        content={
-            "service": "eda_service",
-            "version": settings.VERSION,
-            "description": "Сервис генерации EDA-отчётов",
-            "endpoints": {
-                "health": "/health",
-                "docs": "/docs",
-                "redoc": "/redoc",
-                "openapi": "/openapi.json",
-                "api": "/api",
-                "reports_sse": "/api/reports/events",
-            },
-            "status": "running",
-        }
-    )
-
-
-@app.get("/ready", status_code=status.HTTP_200_OK)
-async def readiness_check() -> JSONResponse:
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={"ready": True, "service": "eda_service", "message": "Сервис готов к работе"},
-    )
-
-
- 
-
 
 if __name__ == "__main__":
     logger.info("Запуск сервера uvicorn...")

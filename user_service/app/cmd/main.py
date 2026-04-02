@@ -2,27 +2,22 @@ import logging
 import uvicorn
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-from sqlalchemy import text
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.exceptions import register_exception_handlers
 from app.core.config import settings
 from app.core.database import init_db, close_db
 from app.router.api import api_router
-from app.core.database import engine
+from app.core.logging import setup_logging
+from app.handler.system_handler import router as system_router
 
-
-logging.basicConfig(
-    level=logging.DEBUG if settings.DEBUG else logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
 logger = logging.getLogger(__name__)
-
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    setup_logging()
+
     logger.info("=" * 60)
     logger.info("Запуск приложения user_service...")
     logger.info(f"Название проекта: {settings.PROJECT_NAME}")
@@ -75,38 +70,9 @@ app.add_middleware(
 logger.info(f"CORS настроен для origins: {settings.CORS_ORIGINS_LIST}")
 
 
-register_exception_handlers(app)
-
-
+app.include_router(system_router, tags=["System"])
 app.include_router(api_router, prefix="/api")
-
-logger.info("API роутеры подключены (/api)")
-
-
-@app.get(
-    "/health",
-    tags=["Health"],
-    summary="Проверка работоспособности",
-    description="Проверка работоспособности сервиса и подключения к БД"
-)
-async def health_check() -> dict:
-    health_status = {
-        "status": "healthy",
-        "service": "user_service",
-        "version": settings.VERSION,
-        "database": "connected",
-    }
-    
-    try:
-        async with engine.connect() as conn:
-            await conn.execute(text("SELECT 1"))
-            logger.debug("Проверка подключения к бд успешна")
-    except Exception as e:
-        logger.error(f"Ошибка подключения к бд: {str(e)}")
-        health_status["status"] = "unhealthy"
-        health_status["database"] = "disconnected"
-        health_status["error"] = "Не удалось подключиться к бд"
-    return health_status
+register_exception_handlers(app)
 
 
 if __name__ == "__main__":
