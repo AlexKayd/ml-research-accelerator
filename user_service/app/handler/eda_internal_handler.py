@@ -6,25 +6,21 @@
 """
 
 import logging
+import hmac
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, status
-from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.schemas.eda_internal_schemas import AttachReportBody
 from app.service.user_report_service import UserReportService
 from app.repository.user_report_repository import UserReportRepository
 from app.repository.report_repository import ReportRepository
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/users", tags=["EDA — внутренние вызовы"])
-
-
-class AttachReportBody(BaseModel):
-    report_id: int = Field(..., ge=1, description="Идентификатор отчёта в ml_platform.reports")
+router = APIRouter(prefix="/users", tags=["EDA - внутренние вызовы"])
 
 
 def get_report_service(session: AsyncSession = Depends(get_db)) -> UserReportService:
@@ -46,7 +42,7 @@ async def verify_eda_internal_token(
             detail="Внутренний эндпойнт EDA не настроен",
         )
     got = (x_eda_internal_token or "").strip()
-    if got != expected:
+    if not hmac.compare_digest(got, expected):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Недействительный токен",

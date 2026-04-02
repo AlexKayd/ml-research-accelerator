@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.celery_config import celery_app
 from app.core.minio import get_minio_client
+from app.domain.interfaces import IReportRepository
 from app.domain.entities import DatasetChangeEvent
 from app.domain.value_objects import EDAEventType, ReportStatus
 from app.repository.files_repository import FilesRepository
@@ -142,10 +143,10 @@ class AggregationEventService:
 
 class RegenWaiterService:
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, report_repository: IReportRepository) -> None:
         self._session = session
         self._settings = get_settings()
-        self._reports = ReportRepository(session)
+        self._reports = report_repository
 
     async def wait_and_regenerate(self, report_id: int) -> None:
         """Ожидает смену статуса отчёта и при необходимости ставит перегенерацию"""

@@ -9,7 +9,6 @@ from app.domain.user import (
     validate_password,
     validate_login
 )
-
 from app.domain.interfaces import (
     IUserRepository,
     IDatasetRepository,
@@ -17,7 +16,6 @@ from app.domain.interfaces import (
     IFavoriteRepository,
     IUserReportRepository
 )
-
 from app.domain.exceptions import (
     DomainException,
     UserAlreadyExistsError,
@@ -63,5 +61,4 @@ __all__ = [
     "ReportAlreadyExistsError",
     "ReportNotFoundError",
     "ReportNotInHistoryError",
-    "ValidationError",
 ]

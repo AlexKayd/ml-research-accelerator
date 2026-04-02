@@ -5,31 +5,16 @@ from app.schemas.auth_schemas import (
     UserResponse,
     TokenResponse,
 )
-
-from app.schemas.user_schemas import (
-    UserProfile,
-)
-
+from app.schemas.user_schemas import UserProfile
 from app.schemas.dataset_schemas import (
     DatasetResponse,
-    DatasetSearchRequest,
+    DatasetWithFilesResponse,
+    DatasetNonDataFilesResponse,
 )
-
-from app.schemas.favorite_schemas import (
-    FavoriteDatasetResponse,
-)
-
-from app.schemas.user_report_schemas import (
-    ReportPreview,
-    UserReportResponse,
-    ReportFullResponse,
-)
-
-from app.schemas.common import (
-    MessageResponse,
-    ErrorResponse,
-    PaginatedResponse,
-)
+from app.schemas.favorite_schemas import FavoriteDatasetResponse
+from app.schemas.user_report_schemas import UserReportListItemResponse
+from app.schemas.common import MessageResponse
+from app.schemas.eda_internal_schemas import AttachReportBody
 
 __all__ = [
     "UserCreate",
@@ -41,16 +26,14 @@ __all__ = [
     "UserProfile",
     
     "DatasetResponse",
-    "DatasetSearchRequest",
+    "DatasetWithFilesResponse",
+    "DatasetNonDataFilesResponse",
     
     "FavoriteDatasetResponse",
-    "FavoriteAddResponse",
     
-    "ReportPreview",
-    "UserReportResponse",
-    "ReportFullResponse",
+    "UserReportListItemResponse",
     
     "MessageResponse",
-    "ErrorResponse",
-    "PaginatedResponse",
+
+    "AttachReportBody",
 ]

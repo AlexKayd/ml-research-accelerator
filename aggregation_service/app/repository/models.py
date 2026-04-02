@@ -9,9 +9,10 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
     CheckConstraint,
     Boolean,
-    Numeric
+    Numeric,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -80,8 +81,8 @@ class DatasetORM(Base):
         String(20),
         nullable=False,
         default="active",
-        index=True,
-        comment="Статус датасета (active, error, deleted)"
+        server_default=text("'active'"),
+        comment="Статус датасета (active, error, deleted)",
     )
     
     download_url: Mapped[Optional[str]] = mapped_column(
@@ -99,7 +100,6 @@ class DatasetORM(Base):
     source_updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,
         nullable=True,
-        index=True,
         comment="Дата последнего обновления в источнике",
     )
     
@@ -120,7 +120,7 @@ class DatasetORM(Base):
         UniqueConstraint("source", "external_id", name="uq_source_external_id"),
         CheckConstraint(
             "status IN ('active', 'error', 'deleted')",
-            name="chk_status"
+            name="chk_status",
         ),
         Index("idx_datasets_search_vector", "search_vector", postgresql_using="gin"),
         Index("idx_datasets_tags", "tags", postgresql_using="gin"),
@@ -155,14 +155,12 @@ class FileORM(Base):
         BigInteger,
         ForeignKey("datasets.dataset_id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
-        comment="Внешний ключ на таблицу datasets"
     )
     
     file_name: Mapped[str] = mapped_column(
         String(500),
         nullable=False,
-        comment="Имя файла (с относительным путём)"
+        comment="Имя файла с относительным путём"
     )
     
     file_size_kb: Mapped[Optional[float]] = mapped_column(
@@ -180,8 +178,9 @@ class FileORM(Base):
     is_data: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
+        server_default=text("true"),
         nullable=False,
-        comment="Флаг: является ли файл data-файлом (CSV/JSON)"
+        comment="Флаг: является ли файл data-файлом",
     )
     
     file_updated_at: Mapped[datetime] = mapped_column(
@@ -197,7 +196,7 @@ class FileORM(Base):
     )
     
     __table_args__ = (
-        UniqueConstraint("dataset_id", "file_name", name="uq_dataset_file_name"),
+        UniqueConstraint("dataset_id", "file_name", name="uq_files_dataset_file_name"),
         Index("idx_files_dataset_id", "dataset_id"),
         {"comment": "Файлы в составе датасетов"}
     )

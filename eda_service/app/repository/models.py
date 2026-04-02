@@ -12,6 +12,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -35,15 +36,13 @@ class DatasetORM(Base):
     source: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
-        index=True,
-        comment="Источник данных (kaggle, uci)",
+        comment="Источник данных",
     )
 
     external_id: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
-        index=True,
-        comment="Внешний идентификатор в репозитории",
+        comment="Внешний идентификатор",
     )
 
     title: Mapped[str] = mapped_column(
@@ -73,15 +72,15 @@ class DatasetORM(Base):
     dataset_size_kb: Mapped[Optional[float]] = mapped_column(
         Numeric(12, 2),
         nullable=True,
-        comment="Общий размер всех файлов в килобайтах",
+        comment="Общий размер всех файлов, КБ",
     )
 
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
         default="active",
-        index=True,
-        comment="Статус датасета (active, error, deleted)",
+        server_default=text("'active'"),
+        comment="Статус датасета",
     )
 
     download_url: Mapped[Optional[str]] = mapped_column(
@@ -99,8 +98,7 @@ class DatasetORM(Base):
     source_updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,
         nullable=True,
-        index=True,
-        comment="Дата последнего обновления в источнике",
+        comment="Дата обновления в источнике",
     )
 
     search_vector: Mapped[Optional[str]] = mapped_column(
@@ -155,20 +153,18 @@ class FileORM(Base):
         BigInteger,
         ForeignKey("datasets.dataset_id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
-        comment="Внешний ключ на таблицу datasets",
     )
 
     file_name: Mapped[str] = mapped_column(
         String(500),
         nullable=False,
-        comment="Имя файла (с относительным путём)",
+        comment="Имя файла с относительным путём",
     )
 
     file_size_kb: Mapped[Optional[float]] = mapped_column(
         Numeric(12, 2),
         nullable=True,
-        comment="Размер файла в килобайтах",
+        comment="Размер файла, КБ",
     )
 
     file_hash: Mapped[Optional[str]] = mapped_column(
@@ -180,8 +176,9 @@ class FileORM(Base):
     is_data: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
+        server_default=text("true"),
         nullable=False,
-        comment="Флаг: является ли файл data-файлом (CSV/JSON)",
+        comment="Флаг: является ли файл data-файлом",
     )
 
     file_updated_at: Mapped[datetime] = mapped_column(
@@ -196,8 +193,14 @@ class FileORM(Base):
         back_populates="files",
     )
 
+    report: Mapped[Optional["ReportORM"]] = relationship(
+        "ReportORM",
+        back_populates="file",
+        uselist=False,
+    )
+
     __table_args__ = (
-        UniqueConstraint("dataset_id", "file_name", name="uq_dataset_file_name"),
+        UniqueConstraint("dataset_id", "file_name", name="uq_files_dataset_file_name"),
         Index("idx_files_dataset_id", "dataset_id"),
         {"comment": "Файлы в составе датасетов"},
     )
@@ -225,8 +228,7 @@ class ReportORM(Base):
         ForeignKey("files.file_id"),
         nullable=False,
         unique=True,
-        index=True,
-        comment="FK на files; один отчёт на один file_id",
+        comment="Файл датасета",
     )
 
     bucket_name: Mapped[Optional[str]] = mapped_column(
@@ -251,8 +253,8 @@ class ReportORM(Base):
         String(20),
         nullable=False,
         default="completed",
-        index=True,
-        comment="Статус отчёта (completed, failed, processing, deleting)",
+        server_default=text("'completed'"),
+        comment="Статус отчёта; индекс idx_reports_status в __table_args__",
     )
 
     updated_at: Mapped[Optional[datetime]] = mapped_column(
@@ -273,14 +275,17 @@ class ReportORM(Base):
         comment="Текст ошибки последней попытки генерации",
     )
 
-    file: Mapped["FileORM"] = relationship("FileORM", lazy="select")
+    file: Mapped["FileORM"] = relationship(
+        "FileORM",
+        back_populates="report",
+        lazy="select",
+    )
 
     __table_args__ = (
         CheckConstraint(
             "status IN ('completed', 'failed', 'processing', 'deleting')",
             name="chk_report_status",
         ),
-        Index("idx_reports_file_id", "file_id"),
         Index("idx_reports_status", "status"),
         Index("idx_reports_updated_at", "updated_at", postgresql_ops={"updated_at": "DESC"}),
         Index(

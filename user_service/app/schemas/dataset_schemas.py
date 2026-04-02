@@ -1,17 +1,60 @@
+from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 
-class DatasetResponse(BaseModel):
-    """Ответ API с полной информацией о датасете (схема sql/ddl.sql)."""
+class DatasetFileResponse(BaseModel):
+    """Data-файл датасета с флагом наличия отчёта у пользователя"""
 
     model_config = ConfigDict(from_attributes=True)
 
-    dataset_id: int = Field(..., description="Уникальный идентификатор датасета")
-    source: str = Field(..., description="Источник данных (kaggle, uci, huggingface)")
-    title: str = Field(..., description="Название датасета")
-    description: Optional[str] = Field(None, description="Описание датасета")
-    tags: List[str] = Field(default_factory=list, description="Теги датасета")
+    file_id: int = Field(
+        ...,
+        description="Идентификатор файла",
+    )
+    file_name: str = Field(
+        ...,
+        description="Имя файла",
+    )
+    file_size_kb: Optional[float] = Field(
+        None,
+        description="Размер файла, КБ",
+    )
+    file_updated_at: datetime = Field(
+        ...,
+        description="Дата обновления файла",
+    )
+    has_user_report: bool = Field(
+        ...,
+        description="Есть ли у пользователя отчёт в истории по этому файлу",
+    )
+
+
+class DatasetResponse(BaseModel):
+    """Ответ API с полной информацией о датасете"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    dataset_id: int = Field(
+        ...,
+        description="Уникальный идентификатор датасета",
+    )
+    source: str = Field(
+        ...,
+        description="Источник данных (kaggle, uci, huggingface)",
+    )
+    title: str = Field(
+        ...,
+        description="Название датасета",
+    )
+    description: Optional[str] = Field(
+        None,
+        description="Описание датасета",
+    )
+    tags: List[str] = Field(
+        default_factory=list,
+        description="Теги датасета",
+    )
     dataset_format: Optional[str] = Field(
         None,
         description="Основной формат данных (csv, json)",
@@ -23,7 +66,6 @@ class DatasetResponse(BaseModel):
     status: str = Field(
         ...,
         description="Статус датасета (active, error, deleted)",
-        example="active",
     )
     download_url: Optional[str] = Field(
         None,
@@ -35,21 +77,41 @@ class DatasetResponse(BaseModel):
     )
 
 
-class DatasetSearchRequest(BaseModel):
-    """Запрос на поиск датасетов с фильтрацией"""
+class DatasetWithFilesResponse(DatasetResponse):
+    """Датасет с data-файлами и флагами наличия отчёта у пользователя"""
 
     model_config = ConfigDict(from_attributes=True)
 
-    query: Optional[str] = Field(None, description="Поисковый запрос (полнотекстовый)")
-    sources: Optional[List[str]] = Field(None, description="Фильтр по источникам")
-    file_formats: Optional[List[str]] = Field(
-        None,
-        description="Фильтр по dataset_format (csv, json)",
+    files: List[DatasetFileResponse] = Field(
+        default_factory=list,
+        description="Список файлов датасета, только is_data=true",
     )
-    max_size_mb: Optional[float] = Field(
-        None,
-        description="Максимальный суммарный размер датасета, МБ",
+
+
+class DatasetNonDataFileResponse(BaseModel):
+    """Не-data файл датасета"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    file_id: int = Field(...,
+    description="Идентификатор файла"
     )
-    tags: Optional[List[str]] = Field(None, description="Фильтр по тегам")
-    limit: int = Field(20, ge=1, le=100, description="Количество результатов")
-    offset: int = Field(0, ge=0, description="Смещение для пагинации")
+    file_name: str = Field(
+        ...,
+        description="Имя файла",
+    )
+
+
+class DatasetNonDataFilesResponse(BaseModel):
+    """Файлы с is_data=false"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    dataset_id: int = Field(
+        ...,
+        description="Идентификатор датасета",
+    )
+    files: List[DatasetNonDataFileResponse] = Field(
+        default_factory=list,
+        description="Файлы датасета, только is_data=false",
+    )

@@ -1,9 +1,7 @@
 import logging
-from typing import List
-
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.domain.user import UserReport
 from app.domain.interfaces import IUserReportRepository
 from app.domain.exceptions import ReportAlreadyExistsError
@@ -34,7 +32,16 @@ class UserReportRepository(IUserReportRepository):
 
         row = UserReportORM(user_id=user_id, report_id=report_id)
         self.session.add(row)
-        await self.session.flush()
+        try:
+            await self.session.flush()
+        except IntegrityError as e:
+
+            logger.warning(
+                "Отчёт уже в истории (IntegrityError): user_id=%s report_id=%s",
+                user_id,
+                report_id,
+            )
+            raise ReportAlreadyExistsError(user_id=user_id, report_id=report_id) from e
 
         return UserReport(user_id=user_id, report_id=report_id)
 
@@ -57,16 +64,8 @@ class UserReportRepository(IUserReportRepository):
         await self.session.flush()
         return True
 
-    async def get_all_by_user(self, user_id: int) -> List[UserReport]:
-        logger.debug("Список истории отчётов: user_id=%s", user_id)
-        query = select(UserReportORM).where(UserReportORM.user_id == user_id)
-        result = await self.session.execute(query)
-        rows: List[UserReportORM] = result.scalars().all()
-        return [
-            UserReport(user_id=row.user_id, report_id=row.report_id) for row in rows
-        ]
-
     async def exists(self, user_id: int, report_id: int) -> bool:
+        """Проверяет существование отчёта в истории пользователя"""
         query = select(UserReportORM).where(
             UserReportORM.user_id == user_id,
             UserReportORM.report_id == report_id,

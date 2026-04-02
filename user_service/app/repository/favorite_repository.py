@@ -1,6 +1,6 @@
 import logging
-from typing import List
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.user import FavoriteDataset
 from app.domain.interfaces import IFavoriteRepository
@@ -34,7 +34,16 @@ class FavoriteRepository(IFavoriteRepository):
         )
         
         self.session.add(favorite_orm)
-        await self.session.flush()
+        try:
+            await self.session.flush()
+        except IntegrityError as e:
+
+            logger.warning(
+                "Датасет уже в избранном (IntegrityError): user_id=%s dataset_id=%s",
+                user_id,
+                dataset_id,
+            )
+            raise FavoriteAlreadyExistsError(user_id=user_id, dataset_id=dataset_id) from e
         
         logger.info(f"Датасет добавлен в избранное: user_id={user_id}, dataset_id={dataset_id}")
         return FavoriteDataset(
@@ -61,25 +70,6 @@ class FavoriteRepository(IFavoriteRepository):
         
         logger.info(f"Датасет удалён из избранного: user_id={user_id}, dataset_id={dataset_id}")
         return True
-    
-    async def get_all_by_user(self, user_id: int) -> List[FavoriteDataset]:
-        """Получает все избранные датасеты пользователя"""
-        logger.debug(f"Получение избранных датасетов: user_id={user_id}")
-        
-        query = select(FavoriteDatasetORM).where(FavoriteDatasetORM.user_id == user_id)
-        result = await self.session.execute(query)
-        favorites_orm = result.scalars().all()
-        
-        favorites = [
-            FavoriteDataset(
-                user_id=fav.user_id,
-                dataset_id=fav.dataset_id
-            )
-            for fav in favorites_orm
-        ]
-        
-        logger.debug(f"Найдено избранных датасетов: {len(favorites)}")
-        return favorites
     
     async def exists(self, user_id: int, dataset_id: int) -> bool:
         """Проверяет наличие датасета в избранном пользователя"""

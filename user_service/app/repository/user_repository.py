@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.user import User
 from app.domain.interfaces import IUserRepository
@@ -30,7 +31,12 @@ class UserRepository(IUserRepository):
         )
         
         self.session.add(user_orm)
-        await self.session.flush()
+        try:
+            await self.session.flush()
+        except IntegrityError as e:
+
+            logger.warning("Пользователь уже существует (IntegrityError): login=%s", user.login)
+            raise UserAlreadyExistsError(login=user.login) from e
         
         logger.info(f"Пользователь успешно создан: user_id={user_orm.user_id}, login={user_orm.login}")
         return User(

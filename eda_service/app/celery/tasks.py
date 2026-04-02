@@ -204,7 +204,10 @@ async def _generate_report_async(report_id: int) -> Dict[str, Any]:
 async def _regen_waiter_async(report_id: int) -> Dict[str, Any]:
     """Задача-ожидалка для отложенной перегенерации"""
     async with get_db_session() as session:
-        service = RegenWaiterService(session)
+        service = RegenWaiterService(
+            session,
+            report_repository=ReportRepository(session),
+        )
         await service.wait_and_regenerate(report_id)
     return {"status": "ok", "report_id": report_id}
 

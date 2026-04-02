@@ -53,7 +53,7 @@ async def add_to_favorites(
     response_model=List[FavoriteDatasetResponse],
     status_code=status.HTTP_200_OK,
     summary="Получить избранные датасеты",
-    description="Получить все избранные датасеты пользователя с полной метаинформацией"
+    description=("Получить все избранные датасеты пользователя"),
 )
 async def get_all_favorites(
     current_user: Annotated[DomainUser, Depends(get_current_user)],

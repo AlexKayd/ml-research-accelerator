@@ -10,6 +10,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
     CheckConstraint,
     Numeric,
 )
@@ -36,14 +37,13 @@ class UserORM(Base):
         String(50),
         unique=True,
         nullable=False,
-        index=True,
         comment="Уникальное имя пользователя для входа",
     )
 
     hashed_password: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
-        comment="Хешированный пароль (bcrypt)",
+        comment="Хешированный пароль",
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -83,7 +83,7 @@ class DatasetORM(Base):
         String(20),
         nullable=False,
         index=True,
-        comment="Источник данных (kaggle, uci, huggingface)",
+        comment="Источник данных (kaggle, uci, hg)",
     )
 
     external_id: Mapped[str] = mapped_column(
@@ -126,6 +126,7 @@ class DatasetORM(Base):
         String(20),
         nullable=False,
         default="active",
+        server_default=text("'active'"),
         index=True,
         comment="Статус датасета (active, error, deleted)",
     )
@@ -145,7 +146,7 @@ class DatasetORM(Base):
     source_updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,
         nullable=True,
-        comment="Дата обновления в источнике (NULL, если источник не отдал дату)",
+        comment="Дата обновления в источнике",
     )
 
     search_vector: Mapped[Optional[object]] = mapped_column(
@@ -168,6 +169,10 @@ class DatasetORM(Base):
 
     __table_args__ = (
         UniqueConstraint("source", "external_id", name="uq_source_external_id"),
+        CheckConstraint(
+            "status IN ('active', 'error', 'deleted')",
+            name="chk_status",
+        ),
         Index("idx_datasets_search_vector", "search_vector", postgresql_using="gin"),
         Index("idx_datasets_tags", "tags", postgresql_using="gin"),
         Index("idx_datasets_dataset_size_kb", "dataset_size_kb"),
@@ -185,7 +190,6 @@ class DatasetORM(Base):
 
 
 class FileORM(Base):
-    """Файл внутри датасета (sql/ddl.sql)."""
 
     __tablename__ = "files"
 
@@ -193,29 +197,58 @@ class FileORM(Base):
         BigInteger,
         primary_key=True,
         autoincrement=True,
+        comment="Уникальный идентификатор файла",
     )
 
     dataset_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey("datasets.dataset_id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
+        comment="Уникальный идентификатор датасета",
     )
 
-    file_name: Mapped[str] = mapped_column(String(500), nullable=False)
-    file_size_kb: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
-    file_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    is_data: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    file_name: Mapped[str] = mapped_column(
+        String(500),
+        nullable=False,
+        comment="Имя файла",
+    )
+
+    file_size_kb: Mapped[Optional[float]] = mapped_column(
+        Numeric(12, 2),
+        nullable=True,
+        comment="Размер файла, КБ",
+    )
+
+    file_hash: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+        comment="SHA-256 хеш файла",
+    )
+
+    is_data: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        server_default=text("true"),
+        nullable=False,
+        comment="Флаг: является ли файл data-файлом",
+    )
+
     file_updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.current_timestamp(),
         nullable=False,
+        comment="Дата последнего обновления файла",
     )
 
-    dataset: Mapped["DatasetORM"] = relationship("DatasetORM", back_populates="files")
-    reports: Mapped[List["ReportORM"]] = relationship(
+    dataset: Mapped["DatasetORM"] = relationship(
+        "DatasetORM",
+        back_populates="files"
+    )
+
+    report: Mapped[Optional["ReportORM"]] = relationship(
         "ReportORM",
         back_populates="file",
+        uselist=False,
         cascade="all, delete-orphan",
     )
 
@@ -226,7 +259,6 @@ class FileORM(Base):
 
 
 class ReportORM(Base):
-    """Отчёт: ссылка на объект в хранилище (bucket/object_key) и файл датасета."""
 
     __tablename__ = "reports"
 
@@ -239,31 +271,61 @@ class ReportORM(Base):
 
     file_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("files.file_id", ondelete="CASCADE"),
+        ForeignKey("files.file_id"),
         nullable=False,
-        index=True,
-        comment="Файл датасета, для которого построен отчёт",
+        unique=True,
+        comment="Файл датасета",
     )
 
-    bucket_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    object_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    bucket_name: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+        comment="Bucket MinIO с HTML-отчётом",
+    )
+
+    object_key: Mapped[Optional[str]] = mapped_column(
+        String(512),
+        nullable=True,
+        comment="Ключ объекта в MinIO",
+    )
+
+    input_file_hash: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+        comment="SHA-256 data-файла, по которому построен отчёт",
+    )
 
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
         default="completed",
-        index=True,
-        comment="Статус отчёта в хранилище",
+        server_default=text("'completed'"),
+        comment="Статус отчёта",
     )
 
-    updated_at: Mapped[datetime] = mapped_column(
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,
-        server_default=func.current_timestamp(),
-        onupdate=func.current_timestamp(),
-        comment="Дата и время последнего обновления",
+        nullable=True,
+        comment="Дата последнего обновления отчёта",
     )
 
-    file: Mapped["FileORM"] = relationship("FileORM", back_populates="reports")
+    processing_started_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="Дата перехода в processing",
+    )
+
+    error_message: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Текст ошибки последней попытки генерации",
+    )
+
+    file: Mapped["FileORM"] = relationship(
+        "FileORM",
+        back_populates="report",
+    )
+
     user_report_links: Mapped[List["UserReportORM"]] = relationship(
         "UserReportORM",
         back_populates="report",
@@ -272,17 +334,21 @@ class ReportORM(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "status IN ('completed', 'failed')",
+            "status IN ('completed', 'failed', 'processing', 'deleting')",
             name="chk_report_status",
         ),
-        Index("idx_reports_file_id", "file_id"),
         Index("idx_reports_status", "status"),
         Index(
             "idx_reports_updated_at",
             "updated_at",
             postgresql_ops={"updated_at": "DESC"},
         ),
-        {"comment": "Метаданные EDA-отчётов (объект в MinIO/S3)"},
+        Index(
+            "idx_reports_processing_started_at",
+            "processing_started_at",
+            postgresql_ops={"processing_started_at": "DESC"},
+        ),
+        {"comment": "Метаданные EDA-отчётов"},
     )
 
     def __repr__(self) -> str:
@@ -307,8 +373,15 @@ class FavoriteDatasetORM(Base):
         comment="Идентификатор датасета",
     )
 
-    user: Mapped["UserORM"] = relationship("UserORM", back_populates="favorites")
-    dataset: Mapped["DatasetORM"] = relationship("DatasetORM", back_populates="favorites")
+    user: Mapped["UserORM"] = relationship(
+        "UserORM",
+        back_populates="favorites"
+    )
+
+    dataset: Mapped["DatasetORM"] = relationship(
+        "DatasetORM",
+        back_populates="favorites"
+    )
 
     __table_args__ = (
         Index("idx_favorites_user_id", "user_id"),
@@ -321,10 +394,6 @@ class FavoriteDatasetORM(Base):
 
 
 class UserReportORM(Base):
-    """
-    История: пользователь сохранил отчёт в историю.
-    Схема users_reports(user_id, report_id) из sql/ddl.sql.
-    """
 
     __tablename__ = "users_reports"
 
@@ -342,7 +411,11 @@ class UserReportORM(Base):
         comment="Идентификатор отчёта",
     )
 
-    user: Mapped["UserORM"] = relationship("UserORM", back_populates="user_reports")
+    user: Mapped["UserORM"] = relationship(
+        "UserORM",
+        back_populates="user_reports"
+    )
+
     report: Mapped["ReportORM"] = relationship(
         "ReportORM",
         back_populates="user_report_links",

@@ -32,24 +32,35 @@ class IDatasetRepository(ABC):
     async def exists(self, dataset_id: int) -> bool:
         """Проверяет существование датасета по айди"""
         pass
-    
+
     @abstractmethod
-    async def get_metadata_batch(self, dataset_ids: List[int]) -> List[dict]:
-        """Получает метаданные нескольких датасетов по айди"""
-        pass
-    
-    @abstractmethod
-    async def search_datasets(
+    async def search_datasets_with_data_files_and_user_reports(
         self,
+        *,
+        user_id: int,
         query: Optional[str] = None,
         sources: Optional[List[str]] = None,
         file_formats: Optional[List[str]] = None,
         max_size_mb: Optional[float] = None,
         tags: Optional[List[str]] = None,
         limit: int = 20,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[dict]:
-        """Поиск датасетов с фильтрацией"""
+        """Поиск датасетов + data-файлы + отчёт пользователя по каждому файлу"""
+        pass
+
+    @abstractmethod
+    async def get_favorite_datasets_with_data_files_and_user_reports(
+        self,
+        *,
+        user_id: int,
+    ) -> List[dict]:
+        """Избранные датасеты + data-файлы + отчёт пользователя по каждому файлу"""
+        pass
+
+    @abstractmethod
+    async def get_non_data_files_by_dataset_id(self, dataset_id: int) -> List[dict]:
+        """Файлы датасета с is_data=false"""
         pass
 
 
@@ -61,23 +72,12 @@ class IReportRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_metadata_for_user_history(self, user_id: int) -> List[dict]:
-        """Отчёты из истории пользователя (users_reports по report_id)"""
-        pass
-
-    @abstractmethod
-    async def get_metadata_batch(self, report_ids: List[int]) -> List[dict]:
-        """Метаданные нескольких отчётов по report_id"""
-        pass
-
-    @abstractmethod
-    async def get_full_metadata(self, report_id: int) -> Optional[dict]:
-        """Полная метаинформация по одному отчёту"""
+    async def get_user_reports_list(self, user_id: int) -> List[dict]:
+        """История отчётов пользователя для списка"""
         pass
 
 
 class IUserReportRepository(ABC):
-    """История: (user_id, report_id) — схема users_reports."""
 
     @abstractmethod
     async def add(self, user_id: int, report_id: int) -> UserReport:
@@ -87,11 +87,6 @@ class IUserReportRepository(ABC):
     @abstractmethod
     async def remove(self, user_id: int, report_id: int) -> bool:
         """Удаляет отчёт из истории"""
-        pass
-
-    @abstractmethod
-    async def get_all_by_user(self, user_id: int) -> List[UserReport]:
-        """Все записи истории пользователя"""
         pass
 
     @abstractmethod
@@ -114,11 +109,6 @@ class IFavoriteRepository(ABC):
     @abstractmethod
     async def remove(self, user_id: int, dataset_id: int) -> bool:
         """Удаляет датасет из избранного пользователя"""
-        pass
-    
-    @abstractmethod
-    async def get_all_by_user(self, user_id: int) -> list[FavoriteDataset]:
-        """Получает все избранные датасеты пользователя"""
         pass
     
     @abstractmethod

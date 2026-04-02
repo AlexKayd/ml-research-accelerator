@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.config import settings
 from app.service.auth_service import AuthService
-from app.service.user_service import UserService
 from app.repository.user_repository import UserRepository
 from app.schemas.auth_schemas import (
     UserCreate,
@@ -31,11 +30,6 @@ def get_auth_service(session: AsyncSession = Depends(get_db)) -> AuthService:
     )
 
 
-def get_user_service(session: AsyncSession = Depends(get_db)) -> UserService:
-    user_repo = UserRepository(session)
-    return UserService(user_repository=user_repo)
-
-
 @router.post(
     "/register",
     response_model=UserResponse,
@@ -46,17 +40,18 @@ def get_user_service(session: AsyncSession = Depends(get_db)) -> UserService:
 async def register(
     user_create: UserCreate,
     auth_service: Annotated[AuthService, Depends(get_auth_service)]
-) -> dict:
+) -> UserResponse:
     """Зарегистрировать нового пользователя"""
     
     user = await auth_service.register(user_create)
 
     logger.info(f"Пользователь успешно зарегистрирован: user_id={user.user_id}")
-    return {
-        "user_id": user.user_id,
-        "login": user.login,
-        "created_at": user.created_at,
-    }
+    assert user.user_id is not None and user.created_at is not None
+    return UserResponse(
+        user_id=user.user_id,
+        login=user.login,
+        created_at=user.created_at,
+    )
 
 
 @router.post(
@@ -69,22 +64,22 @@ async def register(
 async def login(
     user_login: UserLogin,
     auth_service: Annotated[AuthService, Depends(get_auth_service)]
-) -> dict:
+) -> TokenResponse:
     """Войти в систему и получить токены"""
     
     access_token, refresh_token, user_profile = await auth_service.login(user_login)
     
     logger.info(f"Пользователь успешно вошёл: user_id={user_profile.user_id}")
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
-        "user": {
-            "user_id": user_profile.user_id,
-            "login": user_profile.login,
-            "created_at": user_profile.created_at,
-        },
-    }
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        user=UserResponse(
+            user_id=user_profile.user_id,
+            login=user_profile.login,
+            created_at=user_profile.created_at,
+        ),
+    )
 
 
 @router.post(
@@ -97,7 +92,7 @@ async def login(
 async def refresh_tokens(
     token_refresh: TokenRefresh,
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
-) -> dict:
+) -> TokenResponse:
     """Обновить токены"""
     
     access_token, refresh_token, user_profile = await auth_service.refresh_tokens(
@@ -105,13 +100,13 @@ async def refresh_tokens(
     )
     
     logger.info(f"Токены успешно обновлены: user_id={user_profile.user_id}")
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
-        "user": {
-            "user_id": user_profile.user_id,
-            "login": user_profile.login,
-            "created_at": user_profile.created_at,
-        },
-    }
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        user=UserResponse(
+            user_id=user_profile.user_id,
+            login=user_profile.login,
+            created_at=user_profile.created_at,
+        ),
+    )

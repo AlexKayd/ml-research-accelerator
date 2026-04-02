@@ -56,29 +56,9 @@ class FavoriteService:
         self,
         user_id: int
     ) -> List[dict]:
-        """Получает все избранные датасеты пользователя с полной метаинформацией"""
-        logger.debug(f"Получение избранных с метаданными: user_id={user_id}")
-        
-        favorites = await self.favorite_repository.get_all_by_user(user_id)
-        
-        if not favorites:
-            return []
-        
-        dataset_ids = [fav.dataset_id for fav in favorites]
-        datasets_metadata = await self.dataset_repository.get_metadata_batch(dataset_ids)
-        
-        logger.debug(f"Найдено избранных датасетов с метаданными: {len(datasets_metadata)}")
-        return datasets_metadata
-    
-    async def is_favorite(
-        self,
-        user_id: int,
-        dataset_id: int
-    ) -> bool:
-        """Проверяет, находится ли датасет в избранном пользователя"""
-        logger.debug(f"Проверка избранного: user_id={user_id}, dataset_id={dataset_id}")
-        
-        exists = await self.favorite_repository.exists(user_id, dataset_id)
-        
-        logger.debug(f"Датасет {'в избранном' if exists else 'не в избранном'}: dataset_id={dataset_id}")
-        return exists
+        """Возвращает избранные датасеты пользователя + data-файлы + наличие отчёта по файлу"""
+        logger.debug("Получение избранных с файлами: user_id=%s", user_id)
+
+        return await self.dataset_repository.get_favorite_datasets_with_data_files_and_user_reports(
+            user_id=user_id,
+        )

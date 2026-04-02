@@ -3,7 +3,7 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "ML Research Accelerator"
+    PROJECT_NAME: str = "ML Research Accelerator User Service"
     VERSION: str = "1.0.0"
     DEBUG: bool = False
 

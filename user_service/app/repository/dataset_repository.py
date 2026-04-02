@@ -1,11 +1,9 @@
 import logging
 from typing import List, Optional
-
-from sqlalchemy import cast, func, select, ARRAY, Text
+from sqlalchemy import cast, func, select, ARRAY, Text, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.domain.interfaces import IDatasetRepository
-from app.repository.models import DatasetORM
+from app.repository.models import DatasetORM, FileORM, FavoriteDatasetORM, ReportORM, UserReportORM
 
 logger = logging.getLogger(__name__)
 
@@ -16,41 +14,127 @@ class DatasetRepository(IDatasetRepository):
         self.session = session
 
     async def exists(self, dataset_id: int) -> bool:
+        """Проверяет существование датасета по айди"""
+
         logger.debug("Проверка существования датасета: dataset_id=%s", dataset_id)
         query = select(DatasetORM.dataset_id).where(DatasetORM.dataset_id == dataset_id)
         result = await self.session.execute(query)
         return result.scalar_one_or_none() is not None
 
-    async def get_metadata_batch(self, dataset_ids: List[int]) -> List[dict]:
+    async def get_non_data_files_by_dataset_id(self, dataset_id: int) -> List[dict]:
+        """Файлы датасета, которые не являются data"""
+        query = (
+            select(
+                FileORM.file_id,
+                FileORM.file_name,
+            )
+            .where(FileORM.dataset_id == dataset_id)
+            .where(FileORM.is_data.is_(False))
+            .order_by(FileORM.file_id.asc())
+        )
+        result = await self.session.execute(query)
+        rows = result.all()
+        return [
+            {
+                "file_id": int(r.file_id),
+                "file_name": r.file_name,
+            }
+            for r in rows
+        ]
+
+    async def get_datasets_with_data_files_and_user_reports_by_dataset_ids(
+        self,
+        *,
+        user_id: int,
+        dataset_ids: List[int],
+    ) -> List[dict]:
+        """Возвращает датасеты с их data-файлами и отчётом пользователя по каждому файлу"""
         if not dataset_ids:
             return []
 
-        logger.debug("Метаданные для %s датасетов", len(dataset_ids))
+        query = (
+            select(
+                DatasetORM.dataset_id,
+                DatasetORM.source,
+                DatasetORM.title,
+                DatasetORM.description,
+                DatasetORM.tags,
+                DatasetORM.dataset_format,
+                DatasetORM.dataset_size_kb,
+                DatasetORM.status,
+                DatasetORM.download_url,
+                DatasetORM.repository_url,
+                FileORM.file_id,
+                FileORM.file_name,
+                FileORM.file_size_kb,
+                FileORM.file_updated_at,
+                UserReportORM.report_id.label("user_report_id"),
+            )
+            .join(FileORM, FileORM.dataset_id == DatasetORM.dataset_id)
+            .outerjoin(ReportORM, ReportORM.file_id == FileORM.file_id)
+            .outerjoin(
+                UserReportORM,
+                and_(
+                    UserReportORM.user_id == user_id,
+                    UserReportORM.report_id == ReportORM.report_id,
+                ),
+            )
+            .where(DatasetORM.dataset_id.in_(dataset_ids))
+            .where(FileORM.is_data.is_(True))
+            .order_by(DatasetORM.dataset_id.asc(), FileORM.file_id.asc())
+        )
 
-        query = select(DatasetORM).where(DatasetORM.dataset_id.in_(dataset_ids))
         result = await self.session.execute(query)
-        datasets_orm = result.scalars().all()
+        rows = result.all()
+        return self._rows_to_dataset_with_files(rows)
 
-        return [
-            {
-                "dataset_id": ds.dataset_id,
-                "source": ds.source,
-                "title": ds.title,
-                "description": ds.description,
-                "tags": ds.tags or [],
-                "dataset_format": ds.dataset_format,
-                "dataset_size_kb": float(ds.dataset_size_kb)
-                if ds.dataset_size_kb is not None
-                else None,
-                "status": ds.status,
-                "download_url": ds.download_url,
-                "repository_url": ds.repository_url,
-            }
-            for ds in datasets_orm
-        ]
-
-    async def search_datasets(
+    async def get_favorite_datasets_with_data_files_and_user_reports(
         self,
+        *,
+        user_id: int,
+    ) -> List[dict]:
+        """Возвращает избранные датасеты пользователя с их data-файлами и отчётом пользователя по каждому файлу"""
+        query = (
+            select(
+                DatasetORM.dataset_id,
+                DatasetORM.source,
+                DatasetORM.title,
+                DatasetORM.description,
+                DatasetORM.tags,
+                DatasetORM.dataset_format,
+                DatasetORM.dataset_size_kb,
+                DatasetORM.status,
+                DatasetORM.download_url,
+                DatasetORM.repository_url,
+                FileORM.file_id,
+                FileORM.file_name,
+                FileORM.file_size_kb,
+                FileORM.file_updated_at,
+                UserReportORM.report_id.label("user_report_id"),
+            )
+            .join(FavoriteDatasetORM, FavoriteDatasetORM.dataset_id == DatasetORM.dataset_id)
+            .join(FileORM, FileORM.dataset_id == DatasetORM.dataset_id)
+            .outerjoin(ReportORM, ReportORM.file_id == FileORM.file_id)
+            .outerjoin(
+                UserReportORM,
+                and_(
+                    UserReportORM.user_id == user_id,
+                    UserReportORM.report_id == ReportORM.report_id,
+                ),
+            )
+            .where(FavoriteDatasetORM.user_id == user_id)
+            .where(FileORM.is_data.is_(True))
+            .order_by(DatasetORM.dataset_id.asc(), FileORM.file_id.asc())
+        )
+
+        result = await self.session.execute(query)
+        rows = result.all()
+        return self._rows_to_dataset_with_files(rows)
+
+    async def search_datasets_with_data_files_and_user_reports(
+        self,
+        *,
+        user_id: int,
         query: Optional[str] = None,
         sources: Optional[List[str]] = None,
         file_formats: Optional[List[str]] = None,
@@ -59,7 +143,7 @@ class DatasetRepository(IDatasetRepository):
         limit: int = 20,
         offset: int = 0,
     ) -> List[dict]:
-        """Поиск по полям sql/ddl.sql (dataset_format, dataset_size_kb)."""
+        """Поиск датасетов + data-файлы + наличие отчёта у пользователя по каждому файлу"""
         if query is not None:
             query = query.strip() or None
         if sources is not None and len(sources) == 0:
@@ -68,18 +152,6 @@ class DatasetRepository(IDatasetRepository):
             file_formats = None
         if tags is not None and len(tags) == 0:
             tags = None
-
-        logger.debug(
-            "Поиск датасетов: query=%r, sources=%s, file_formats=%s, "
-            "max_size_mb=%s, tags=%s, limit=%s, offset=%s",
-            query,
-            sources,
-            file_formats,
-            max_size_mb,
-            tags,
-            limit,
-            offset,
-        )
 
         conditions = []
 
@@ -90,7 +162,6 @@ class DatasetRepository(IDatasetRepository):
         if sources:
             conditions.append(DatasetORM.source.in_(sources))
 
-        # Параметр API file_formats фильтрует колонку dataset_format
         if file_formats:
             conditions.append(DatasetORM.dataset_format.in_(file_formats))
 
@@ -101,11 +172,9 @@ class DatasetRepository(IDatasetRepository):
         if tags:
             conditions.append(DatasetORM.tags.op("&&")(cast(tags, ARRAY(Text))))
 
-        stmt = select(DatasetORM)
+        stmt = select(DatasetORM.dataset_id).where(DatasetORM.status == "active")
         if conditions:
             stmt = stmt.where(*conditions)
-
-        stmt = stmt.where(DatasetORM.status == "active")
         stmt = stmt.order_by(
             DatasetORM.source_updated_at.desc(),
             DatasetORM.dataset_id.desc(),
@@ -113,23 +182,48 @@ class DatasetRepository(IDatasetRepository):
         stmt = stmt.limit(limit).offset(offset)
 
         result = await self.session.execute(stmt)
-        datasets_orm = result.scalars().all()
+        dataset_ids = [int(x) for x in result.scalars().all()]
 
-        logger.debug("Найдено датасетов: %s", len(datasets_orm))
-        return [self._orm_to_dict(ds) for ds in datasets_orm]
+        return await self.get_datasets_with_data_files_and_user_reports_by_dataset_ids(
+            user_id=user_id,
+            dataset_ids=dataset_ids,
+        )
 
-    def _orm_to_dict(self, dataset_orm: DatasetORM) -> dict:
-        return {
-            "dataset_id": dataset_orm.dataset_id,
-            "source": dataset_orm.source,
-            "title": dataset_orm.title,
-            "description": dataset_orm.description,
-            "tags": dataset_orm.tags or [],
-            "dataset_format": dataset_orm.dataset_format,
-            "dataset_size_kb": float(dataset_orm.dataset_size_kb)
-            if dataset_orm.dataset_size_kb is not None
-            else None,
-            "status": dataset_orm.status,
-            "download_url": dataset_orm.download_url,
-            "repository_url": dataset_orm.repository_url,
-        }
+    def _rows_to_dataset_with_files(self, rows: list) -> List[dict]:
+        out_by_id: dict[int, dict] = {}
+
+        for row in rows:
+            dataset_id = int(row.dataset_id)
+            ds = out_by_id.get(dataset_id)
+            if ds is None:
+                ds = {
+                    "dataset_id": dataset_id,
+                    "source": row.source,
+                    "title": row.title,
+                    "description": row.description,
+                    "tags": row.tags or [],
+                    "dataset_format": row.dataset_format,
+                    "dataset_size_kb": float(row.dataset_size_kb) if row.dataset_size_kb is not None else None,
+                    "status": row.status,
+                    "download_url": row.download_url,
+                    "repository_url": row.repository_url,
+                    "files": [],
+                }
+                out_by_id[dataset_id] = ds
+
+
+            if row.file_id is None:
+                continue
+
+            report_id = int(row.user_report_id) if row.user_report_id is not None else None
+            ds["files"].append(
+                {
+                    "file_id": int(row.file_id),
+                    "file_name": row.file_name,
+                    "file_size_kb": float(row.file_size_kb) if row.file_size_kb is not None else None,
+                    "file_updated_at": row.file_updated_at,
+                    "has_user_report": report_id is not None,
+                }
+            )
+
+        return list(out_by_id.values())

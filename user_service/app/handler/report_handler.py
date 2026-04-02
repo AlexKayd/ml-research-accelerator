@@ -6,8 +6,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.domain.user import User as DomainUser
 from app.service.user_report_service import UserReportService
-from app.schemas.user_report_schemas import UserReportResponse, ReportFullResponse
-from app.schemas.common import MessageResponse
+from app.schemas.user_report_schemas import UserReportListItemResponse
 from app.repository.user_report_repository import UserReportRepository
 from app.repository.report_repository import ReportRepository
 
@@ -26,34 +25,12 @@ def get_report_service(session: AsyncSession = Depends(get_db)) -> UserReportSer
     )
 
 
-@router.post(
-    "/{report_id}",
-    response_model=MessageResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Сохранить отчёт",
-    description="Сохранить сгенерированный отчёт в историю пользователя"
-)
-async def save_report(
-    report_id: Annotated[int, Path(..., description="Идентификатор отчёта")],
-    current_user: Annotated[DomainUser, Depends(get_current_user)],
-    report_service: Annotated[UserReportService, Depends(get_report_service)],
-) -> dict:
-    """Сохранить отчёт в историю"""
-    await report_service.save_report(
-        user_id=current_user.user_id,
-        report_id=report_id,
-    )
-    
-    logger.info(f"Отчёт сохранён в историю: report_id={report_id}")
-    return {"message": "Отчёт успешно сохранён в историю"}
-
-
 @router.get(
     "",
-    response_model=List[UserReportResponse],
+    response_model=List[UserReportListItemResponse],
     status_code=status.HTTP_200_OK,
     summary="Получить историю отчётов",
-    description="Получить все отчёты в истории пользователя с метаинформацией (с превью)"
+    description="Получить все отчёты в истории пользователя"
 )
 async def get_all_reports(
     current_user: Annotated[DomainUser, Depends(get_current_user)],
@@ -68,30 +45,6 @@ async def get_all_reports(
     
     logger.info(f"Найдено отчётов: {len(reports)}")
     return reports
-
-
-@router.get(
-    "/{report_id}/full",
-    response_model=ReportFullResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Получить полный отчёт",
-    description="Получить полный EDA-отчёт со всем содержимым"
-)
-async def get_report_full(
-    report_id: Annotated[int, Path(..., description="Идентификатор отчёта")],
-    current_user: Annotated[DomainUser, Depends(get_current_user)],
-    report_service: Annotated[UserReportService, Depends(get_report_service)],
-) -> dict:
-    """Получить полный отчёт"""
-    logger.info(f"Получение полного отчёта: user_id={current_user.user_id}")
-    
-    report = await report_service.get_report_full_details(
-        user_id=current_user.user_id,
-        report_id=report_id,
-    )
-    
-    logger.info(f"Полный отчёт получен: report_id={report_id}")
-    return report
 
 
 @router.delete(

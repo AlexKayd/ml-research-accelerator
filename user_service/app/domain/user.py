@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 import re
@@ -46,13 +46,6 @@ class User:
     def __post_init__(self) -> None:
         validate_login(self.login)
     
-    def to_dict(self) -> dict:
-        return {
-            "user_id": self.user_id,
-            "login": self.login,
-            "created_at": self.created_at.isoformat() if self.created_at else None
-        }
-    
     def __str__(self) -> str:
         return f"User(user_id={self.user_id}, login={self.login})"
     
@@ -96,13 +89,6 @@ class UserProfile:
     user_id: int
     login: str
     created_at: datetime
-    
-    def to_dict(self) -> dict:
-        return {
-            "user_id": self.user_id,
-            "login": self.login,
-            "created_at": self.created_at.isoformat()
-        }
 
 
 @dataclass
@@ -136,7 +122,6 @@ class FavoriteDataset:
 
 @dataclass
 class UserReport:
-    """Связь пользователя с отчётом в истории (таблица users_reports)."""
 
     user_id: int
     report_id: int

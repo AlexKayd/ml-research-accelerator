@@ -170,8 +170,9 @@ async def get_current_user(
     if user is None:
         logger.warning(f"Пользователь не найден: user_id={token_data.user_id}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пользователь не найден",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Невалидный токен",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     
     logger.debug(f"Текущий пользователь загружен: user_id={user.user_id}")
