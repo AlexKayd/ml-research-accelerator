@@ -3,7 +3,7 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, status, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.handler.dependencies import get_current_user
 from app.domain.user import User as DomainUser
 from app.service.favorite_service import FavoriteService
 from app.schemas.favorite_schemas import FavoriteDatasetResponse

@@ -5,12 +5,8 @@ from jose import JWTError, ExpiredSignatureError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.domain.user import User as DomainUser
 from app.domain.user import TokenData
 from app.core.config import settings
-from app.core.database import get_db
-from app.repository.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -117,14 +113,13 @@ def decode_token(
     return token_data
 
 
-async def get_current_user(
+async def get_current_token_data(
     credentials: Annotated[
         Optional[HTTPAuthorizationCredentials],
         Depends(security)
     ] = None,
-    session: AsyncSession = Depends(get_db),
-) -> DomainUser:
-    """Получение текущего авторизованного пользователя"""
+) -> TokenData:
+    """Достаёт и валидирует access токен, возвращает TokenData."""
     if credentials is None:
         logger.warning("Отсутствует токен в запросе")
         raise HTTPException(
@@ -163,17 +158,5 @@ async def get_current_user(
             detail="Требуется access токен",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    user_repo = UserRepository(session)
-    user = await user_repo.get_by_id(token_data.user_id)
-    
-    if user is None:
-        logger.warning(f"Пользователь не найден: user_id={token_data.user_id}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Невалидный токен",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    logger.debug(f"Текущий пользователь загружен: user_id={user.user_id}")
-    return user
+
+    return token_data

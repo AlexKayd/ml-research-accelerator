@@ -114,8 +114,8 @@ if __name__ == "__main__":
     
     uvicorn.run(
         "app.cmd.main:app",
-        host="0.0.0.0",
-        port=8001,
+        host=settings.API_HOST,
+        port=settings.API_PORT,
         reload=settings.DEBUG,
         log_level="debug" if settings.DEBUG else "info",
         workers=1,

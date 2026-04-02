@@ -14,17 +14,17 @@ from app.repository.favorite_repository import FavoriteRepository
 from app.repository.user_report_repository import UserReportRepository
 
 __all__ = [
-    "Base",
-    "UserORM",
-    "DatasetORM",
-    "FileORM",
-    "ReportORM",
-    "FavoriteDatasetORM",
-    "UserReportORM",
+    'Base',
+    'UserORM',
+    'DatasetORM',
+    'FileORM',
+    'ReportORM',
+    'FavoriteDatasetORM',
+    'UserReportORM',
     
-    "UserRepository",
-    "DatasetRepository",
-    "ReportRepository",
-    "FavoriteRepository",
-    "UserReportRepository",
+    'UserRepository',
+    'DatasetRepository',
+    'ReportRepository',
+    'FavoriteRepository',
+    'UserReportRepository',
 ]

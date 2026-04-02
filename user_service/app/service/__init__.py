@@ -4,8 +4,8 @@ from app.service.user_report_service import UserReportService
 from app.service.dataset_service import DatasetService
 
 __all__ = [
-    "AuthService",
-    "FavoriteService",
-    "UserReportService",
-    "DatasetService",
+    'AuthService',
+    'FavoriteService',
+    'UserReportService',
+    'DatasetService',
 ]

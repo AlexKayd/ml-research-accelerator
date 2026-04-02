@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 from fastapi import APIRouter, Depends, status
-from app.core.security import get_current_user
+from app.handler.dependencies import get_current_user
 from app.domain.user import User as DomainUser
 from app.schemas.user_schemas import UserProfile
 

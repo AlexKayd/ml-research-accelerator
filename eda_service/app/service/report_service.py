@@ -35,6 +35,7 @@ class ReportService:
         if report is None:
             report = await self._reports.create_processing_report_with_advisory_lock(file_id=file_id)
             rid = int(report.report_id or 0)
+            await self._session.commit()
             await register_report_subscriber(rid, user_id)
             await enqueue_generate_task_only(report_id=rid)
             return GenerateReportResponse(report_id=rid, status="processing", report_url=None)

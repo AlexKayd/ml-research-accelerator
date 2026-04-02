@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     DEBUG: bool = False
 
+    API_HOST: str = "0.0.0.0"
+    API_PORT: int = 8001
+
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_HOST: str = "localhost"

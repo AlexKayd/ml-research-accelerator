@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.database import close_db, init_db
 from app.core.health import get_health_status
+from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
 from app.router import api_router
 import uvicorn
@@ -72,6 +73,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api")
+register_exception_handlers(app)
 
 
 @app.get("/health", status_code=status.HTTP_200_OK)
@@ -113,23 +115,7 @@ async def readiness_check() -> JSONResponse:
     )
 
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request, exc: Exception) -> JSONResponse:
-    logger.error(
-        "Непредвиденная ошибка: %s",
-        exc,
-        exc_info=True,
-        extra={"path": str(request.url.path), "method": str(request.method)},
-    )
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "status": "error",
-            "code": "INTERNAL_ERROR",
-            "message": "Внутренняя ошибка сервиса",
-            "details": str(exc) if settings.DEBUG else None,
-        },
-    )
+ 
 
 
 if __name__ == "__main__":

@@ -84,7 +84,6 @@ class ReportRepository(IReportRepository):
                     self.session.add(orm)
                     await self.session.flush()
                     await self.session.refresh(orm)
-                    await self.session.commit()
 
                     logger.info(
                         "Создан отчёт со статусом processing: report_id=%s file_id=%s",

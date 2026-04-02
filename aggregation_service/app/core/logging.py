@@ -72,4 +72,4 @@ def setup_logging(
         logger.debug("Режим отладки включён: включено подробное логирование")
 
 
-setup_logging()
+ 
