@@ -41,7 +41,7 @@ class DatasetResponse(BaseModel):
     )
     source: str = Field(
         ...,
-        description="Источник данных (kaggle, uci, huggingface)",
+        description="Источник данных (kaggle, uci)",
     )
     title: str = Field(
         ...,
@@ -99,6 +99,14 @@ class DatasetNonDataFileResponse(BaseModel):
     file_name: str = Field(
         ...,
         description="Имя файла",
+    )
+    file_size_kb: Optional[float] = Field(
+        None,
+        description="Размер файла, КБ",
+    )
+    file_updated_at: datetime = Field(
+        ...,
+        description="Дата последнего обновления файла",
     )
 
 

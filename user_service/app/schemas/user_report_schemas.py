@@ -53,3 +53,11 @@ class UserReportListItemResponse(BaseModel):
         None,
         description="URL страницы датасета в репозитории",
     )
+    dataset_status: str = Field(
+        ...,
+        description="Статус датасета (active, error, deleted)",
+    )
+    dataset_updated_at: Optional[datetime] = Field(
+        None,
+        description="Дата обновления датасета в источнике",
+    )

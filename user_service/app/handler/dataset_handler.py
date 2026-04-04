@@ -35,7 +35,7 @@ async def search_datasets(
     ] = None,
     sources: Annotated[
         Optional[List[str]],
-        Query(description="Фильтр по источникам (kaggle, uci, hg)")
+        Query(description="Фильтр по источникам (kaggle, uci)")
     ] = None,
     file_formats: Annotated[
         Optional[List[str]],
@@ -81,7 +81,7 @@ async def search_datasets(
     response_model=DatasetNonDataFilesResponse,
     status_code=status.HTTP_200_OK,
     summary="Не-data файлы датасета",
-    description="Возвращает file_id и file_name файлов датасета, у которых is_data=false",
+    description="Возвращает данные файлов, у которых is_data=false",
 )
 async def get_dataset_non_data_files(
     dataset_id: Annotated[int, Path(..., ge=1, description="Идентификатор датасета")],

@@ -27,6 +27,8 @@ class DatasetRepository(IDatasetRepository):
             select(
                 FileORM.file_id,
                 FileORM.file_name,
+                FileORM.file_size_kb,
+                FileORM.file_updated_at,
             )
             .where(FileORM.dataset_id == dataset_id)
             .where(FileORM.is_data.is_(False))
@@ -38,6 +40,8 @@ class DatasetRepository(IDatasetRepository):
             {
                 "file_id": int(r.file_id),
                 "file_name": r.file_name,
+                "file_size_kb": float(r.file_size_kb) if r.file_size_kb is not None else None,
+                "file_updated_at": r.file_updated_at,
             }
             for r in rows
         ]
@@ -140,7 +144,7 @@ class DatasetRepository(IDatasetRepository):
         file_formats: Optional[List[str]] = None,
         max_size_mb: Optional[float] = None,
         tags: Optional[List[str]] = None,
-        limit: int = 20,
+        limit: int = 100,
         offset: int = 0,
     ) -> List[dict]:
         """Поиск датасетов + data-файлы + наличие отчёта у пользователя по каждому файлу"""

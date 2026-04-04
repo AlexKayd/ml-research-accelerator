@@ -14,7 +14,7 @@ class ReportRepository(IReportRepository):
         self.session = session
 
     async def exists(self, report_id: int) -> bool:
-
+        """Проверяет существование отчёта по айди"""
         logger.debug("Проверка существования отчёта: report_id=%s", report_id)
         query = select(ReportORM.report_id).where(ReportORM.report_id == report_id)
         result = await self.session.execute(query)
@@ -36,6 +36,8 @@ class ReportRepository(IReportRepository):
                 DatasetORM.source,
                 DatasetORM.title,
                 DatasetORM.repository_url,
+                DatasetORM.status.label("dataset_status"),
+                DatasetORM.source_updated_at.label("dataset_updated_at"),
             )
             .join(UserReportORM, (UserReportORM.report_id == ReportORM.report_id) & (UserReportORM.user_id == user_id))
             .join(FileORM, FileORM.file_id == ReportORM.file_id)
@@ -57,6 +59,8 @@ class ReportRepository(IReportRepository):
                 "source": row.source,
                 "title": row.title,
                 "repository_url": row.repository_url,
+                "dataset_status": row.dataset_status,
+                "dataset_updated_at": row.dataset_updated_at,
             }
             for row in rows
         ]
