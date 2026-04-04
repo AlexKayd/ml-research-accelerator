@@ -1,6 +1,6 @@
 import logging
 from typing import List, Optional
-from sqlalchemy import cast, func, select, ARRAY, Text, and_
+from sqlalchemy import cast, case, func, literal, select, ARRAY, Text, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.interfaces import IDatasetRepository
 from app.repository.models import DatasetORM, FileORM, FavoriteDatasetORM, ReportORM, UserReportORM
@@ -73,8 +73,19 @@ class DatasetRepository(IDatasetRepository):
                 FileORM.file_size_kb,
                 FileORM.file_updated_at,
                 UserReportORM.report_id.label("user_report_id"),
+                case(
+                    (FavoriteDatasetORM.user_id.is_not(None), True),
+                    else_=False,
+                ).label("is_favorite"),
             )
             .join(FileORM, FileORM.dataset_id == DatasetORM.dataset_id)
+            .outerjoin(
+                FavoriteDatasetORM,
+                and_(
+                    FavoriteDatasetORM.dataset_id == DatasetORM.dataset_id,
+                    FavoriteDatasetORM.user_id == user_id,
+                ),
+            )
             .outerjoin(ReportORM, ReportORM.file_id == FileORM.file_id)
             .outerjoin(
                 UserReportORM,
@@ -115,6 +126,7 @@ class DatasetRepository(IDatasetRepository):
                 FileORM.file_size_kb,
                 FileORM.file_updated_at,
                 UserReportORM.report_id.label("user_report_id"),
+                literal(True).label("is_favorite"),
             )
             .join(FavoriteDatasetORM, FavoriteDatasetORM.dataset_id == DatasetORM.dataset_id)
             .join(FileORM, FileORM.dataset_id == DatasetORM.dataset_id)
@@ -211,6 +223,7 @@ class DatasetRepository(IDatasetRepository):
                     "status": row.status,
                     "download_url": row.download_url,
                     "repository_url": row.repository_url,
+                    "is_favorite": bool(row.is_favorite),
                     "files": [],
                 }
                 out_by_id[dataset_id] = ds

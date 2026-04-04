@@ -83,7 +83,7 @@ class DatasetORM(Base):
         String(20),
         nullable=False,
         index=True,
-        comment="Источник данных (kaggle, uci, hg)",
+        comment="Источник данных (kaggle, uci)",
     )
 
     external_id: Mapped[str] = mapped_column(

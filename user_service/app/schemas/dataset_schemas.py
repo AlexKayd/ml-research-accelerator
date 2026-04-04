@@ -78,10 +78,14 @@ class DatasetResponse(BaseModel):
 
 
 class DatasetWithFilesResponse(DatasetResponse):
-    """Датасет с data-файлами и флагами наличия отчёта у пользователя"""
+    """Датасет с data-файлами и флагами наличия отчёта и датасета у пользователя"""
 
     model_config = ConfigDict(from_attributes=True)
 
+    is_favorite: bool = Field(
+        ...,
+        description="Есть ли датасет в избранном у пользователя",
+    )
     files: List[DatasetFileResponse] = Field(
         default_factory=list,
         description="Список файлов датасета, только is_data=true",

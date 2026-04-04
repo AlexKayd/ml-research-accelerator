@@ -74,7 +74,6 @@ app.include_router(system_router, tags=["System"])
 app.include_router(api_router, prefix="/api")
 register_exception_handlers(app)
 
-
 if __name__ == "__main__":
     logger.info("Запуск сервера uvicorn...")
     

@@ -16,6 +16,7 @@ class UserReportRepository(IUserReportRepository):
         self.session = session
 
     async def add(self, user_id: int, report_id: int) -> UserReport:
+        """Сохраняет отчёт в историю пользователя"""
         logger.info(
             "Сохранение отчёта в историю: user_id=%s, report_id=%s",
             user_id,
@@ -46,6 +47,7 @@ class UserReportRepository(IUserReportRepository):
         return UserReport(user_id=user_id, report_id=report_id)
 
     async def remove(self, user_id: int, report_id: int) -> bool:
+        """Удаляет отчёт из истории пользователя"""
         logger.info(
             "Удаление отчёта из истории: user_id=%s, report_id=%s",
             user_id,

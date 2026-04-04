@@ -23,9 +23,6 @@ class DomainException(Exception):
             "message": self.message,
             "details": self.details
         }
-    
-    def __str__(self) -> str:
-        return f"[{self.code}] {self.message}"
 
 
 class UserAlreadyExistsError(DomainException):
