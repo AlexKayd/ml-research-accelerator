@@ -37,7 +37,6 @@ class MinIOClient(IReportStorage):
         return self._reports_bucket
 
     def _reports_bucket_anonymous_read_policy(self) -> str:
-        """AWS-совместимая policy: только GetObject для всех принципалов на объекты бакета."""
         resource = f"arn:aws:s3:::{self._reports_bucket}/*"
         doc = {
             "Version": "2012-10-17",
@@ -53,7 +52,7 @@ class MinIOClient(IReportStorage):
         return json.dumps(doc)
 
     def _apply_reports_bucket_anonymous_read_policy_sync(self) -> None:
-        """Разрешает анонимное чтение объектов в бакете отчётов (открытие report_url в браузере)."""
+        """Разрешает анонимное чтение объектов в бакете отчётов"""
         if not settings.MINIO_REPORTS_BUCKET_ANONYMOUS_READ:
             return
         if self._anonymous_read_policy_applied:
@@ -207,7 +206,7 @@ class MinIOClient(IReportStorage):
         return f"{scheme}://{settings.MINIO_ENDPOINT}/{self._reports_bucket}/{object_key}"
 
     def ensure_reports_bucket_and_policy_sync(self) -> None:
-        """Создаёт бакет отчётов при необходимости и применяет политику анонимного чтения."""
+        """Создаёт бакет отчётов и применяет политику анонимного чтения"""
         self._ensure_reports_bucket_sync()
 
     def health_check(self) -> bool:

@@ -31,7 +31,7 @@ class UserReportListItemResponse(BaseModel):
     )
     report_url: Optional[str] = Field(
         None,
-        description="Публичный URL HTML отчёта в MinIO (MINIO_PUBLIC_BASE_URL/bucket/object_key)",
+        description="Публичный URL отчёта в MinIO ",
     )
     file_id: int = Field(
         ...,

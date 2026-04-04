@@ -31,7 +31,6 @@ class Settings(BaseSettings):
 
     EDA_SERVICE_INTERNAL_TOKEN: str = ""
 
-    # Публичный URL MinIO для браузера (без имени бакета в конце). Совпадает с MINIO_PUBLIC_BASE_URL в eda_service.
     MINIO_PUBLIC_BASE_URL: str = ""
 
     @property
