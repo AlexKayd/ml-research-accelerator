@@ -1,7 +1,6 @@
 import logging
 from datetime import timedelta
 from typing import Any, Dict
-
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)

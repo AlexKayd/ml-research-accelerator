@@ -62,7 +62,7 @@ class ReportGenerator:
 
         try:
             logger.info(
-                "EDA: старт report_id=%s file_id=%s dataset_id=%s — скачивание ZIP",
+                "EDA: старт report_id=%s file_id=%s dataset_id=%s - скачивание ZIP",
                 report.report_id,
                 file_info.file_id,
                 file_info.dataset_id,
