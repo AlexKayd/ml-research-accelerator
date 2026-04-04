@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -7,6 +8,7 @@ from app.core.config import settings
 from app.core.database import close_db, init_db
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
+from app.core.minio import get_minio_client
 from app.handler.system_handler import router as system_router
 from app.router import api_router
 import uvicorn
@@ -30,6 +32,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         except Exception as e:
             logger.error("Ошибка инициализации БД: %s", e, exc_info=True)
             raise
+
+    if settings.MINIO_REPORTS_BUCKET_ANONYMOUS_READ:
+        try:
+            await asyncio.to_thread(
+                get_minio_client().ensure_reports_bucket_and_policy_sync,
+            )
+        except Exception as e:
+            logger.warning(
+                "MinIO при старте: бакет/политика не применены %s",
+                e,
+            )
 
     logger.info("EDA Service готов к работе")
     logger.debug("  Health Check: http://localhost:%s/health", settings.API_PORT)

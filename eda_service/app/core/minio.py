@@ -1,5 +1,6 @@
 import asyncio
 import io
+import json
 import logging
 from typing import Optional
 from app.core.config import settings
@@ -28,26 +29,83 @@ class MinIOClient(IReportStorage):
             secure=settings.MINIO_SECURE,
         )
         self._reports_bucket = settings.MINIO_REPORTS_BUCKET
+        self._anonymous_read_policy_applied = False
         logger.debug("Инициализирован MinIOClient endpoint=%s", settings.MINIO_ENDPOINT)
 
     @property
     def reports_bucket(self) -> str:
         return self._reports_bucket
 
-    def _ensure_reports_bucket_sync(self) -> None:
-        """Создает bucket в MinIO, если он не существует"""
-        try:
-            if self._client.bucket_exists(self._reports_bucket):
-                return
-            if not settings.MINIO_AUTO_CREATE_BUCKET:
-                raise StorageError(
-                    "ensure_bucket",
-                    bucket=self._reports_bucket,
-                    reason="bucket не существует и авто-создание отключено (MINIO_AUTO_CREATE_BUCKET)",
-                )
-            self._client.make_bucket(self._reports_bucket)
+    def _reports_bucket_anonymous_read_policy(self) -> str:
+        """AWS-совместимая policy: только GetObject для всех принципалов на объекты бакета."""
+        resource = f"arn:aws:s3:::{self._reports_bucket}/*"
+        doc = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": ["*"]},
+                    "Action": ["s3:GetObject"],
+                    "Resource": [resource],
+                }
+            ],
+        }
+        return json.dumps(doc)
 
-            logger.info("Создан bucket MinIO: %s", self._reports_bucket)
+    def _apply_reports_bucket_anonymous_read_policy_sync(self) -> None:
+        """Разрешает анонимное чтение объектов в бакете отчётов (открытие report_url в браузере)."""
+        if not settings.MINIO_REPORTS_BUCKET_ANONYMOUS_READ:
+            return
+        if self._anonymous_read_policy_applied:
+            return
+        try:
+            self._client.set_bucket_policy(
+                self._reports_bucket,
+                self._reports_bucket_anonymous_read_policy(),
+            )
+            self._anonymous_read_policy_applied = True
+            logger.info(
+                "Политика анонимного чтения объектов применена: bucket=%s",
+                self._reports_bucket,
+            )
+        except Exception as e:
+            if S3Error is not None and isinstance(e, S3Error):
+                logger.error(
+                    "Не удалось применить политику публичного чтения к bucket=%s: %s",
+                    self._reports_bucket,
+                    e,
+                )
+                raise StorageError(
+                    "set_bucket_policy",
+                    bucket=self._reports_bucket,
+                    reason=str(e),
+                ) from e
+            logger.error(
+                "Не удалось применить политику публичного чтения к bucket=%s: %s",
+                self._reports_bucket,
+                e,
+                exc_info=True,
+            )
+            raise StorageError(
+                "set_bucket_policy",
+                bucket=self._reports_bucket,
+                reason=str(e),
+            ) from e
+
+    def _ensure_reports_bucket_sync(self) -> None:
+        """Создаёт bucket при необходимости и применяет policy анонимного чтения (если включено)."""
+        try:
+            if not self._client.bucket_exists(self._reports_bucket):
+                if not settings.MINIO_AUTO_CREATE_BUCKET:
+                    raise StorageError(
+                        "ensure_bucket",
+                        bucket=self._reports_bucket,
+                        reason="bucket не существует и авто-создание отключено (MINIO_AUTO_CREATE_BUCKET)",
+                    )
+                self._client.make_bucket(self._reports_bucket)
+                logger.info("Создан bucket MinIO: %s", self._reports_bucket)
+
+            self._apply_reports_bucket_anonymous_read_policy_sync()
         except StorageError:
             raise
 
@@ -147,6 +205,10 @@ class MinIOClient(IReportStorage):
             return f"{base}/{self._reports_bucket}/{object_key}"
         scheme = "https" if settings.MINIO_SECURE else "http"
         return f"{scheme}://{settings.MINIO_ENDPOINT}/{self._reports_bucket}/{object_key}"
+
+    def ensure_reports_bucket_and_policy_sync(self) -> None:
+        """Создаёт бакет отчётов при необходимости и применяет политику анонимного чтения."""
+        self._ensure_reports_bucket_sync()
 
     def health_check(self) -> bool:
         """Проверяет, доступен ли MinIO"""

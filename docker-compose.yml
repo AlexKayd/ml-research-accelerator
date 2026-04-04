@@ -70,6 +70,7 @@ services:
       TZ: "Europe/Moscow"
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
+      MINIO_PUBLIC_BASE_URL: http://localhost:9000
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
     depends_on:
@@ -224,6 +225,7 @@ services:
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       MINIO_ENDPOINT: minio:9000
       MINIO_PUBLIC_BASE_URL: http://localhost:9000
+      MINIO_REPORTS_BUCKET_ANONYMOUS_READ: "true"
       USER_SERVICE_URL: http://user_service:8001
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
@@ -261,7 +263,7 @@ services:
       - >
         exec celery -A app.core.celery_config worker
         --loglevel $$(echo "$$LOG_LEVEL" | tr '[:upper:]' '[:lower:]')
-        --pool=prefork --concurrency $${CELERY_WORKER_CONCURRENCY:-2}
+        --pool=prefork --concurrency $${CELERY_WORKER_CONCURRENCY:-3}
         -Q $${CELERY_EDA_QUEUE:-eda}
     env_file:
       - .env
@@ -324,6 +326,7 @@ services:
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       MINIO_ENDPOINT: minio:9000
       MINIO_PUBLIC_BASE_URL: http://localhost:9000
+      MINIO_REPORTS_BUCKET_ANONYMOUS_READ: "true"
       USER_SERVICE_URL: http://user_service:8001
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
@@ -373,6 +376,7 @@ services:
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       MINIO_ENDPOINT: minio:9000
       MINIO_PUBLIC_BASE_URL: http://localhost:9000
+      MINIO_REPORTS_BUCKET_ANONYMOUS_READ: "true"
       USER_SERVICE_URL: http://user_service:8001
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"

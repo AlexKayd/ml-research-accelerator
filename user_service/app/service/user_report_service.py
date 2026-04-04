@@ -1,4 +1,6 @@
 import logging
+from app.core.config import settings
+from app.core.report_public_url import build_report_public_url
 from app.domain.user import UserReport
 from app.domain.interfaces import IUserReportRepository, IReportRepository
 from app.domain.exceptions import (
@@ -68,4 +70,12 @@ class UserReportService:
 
     async def get_all_reports_with_details(self, user_id: int) -> list[dict]:
         logger.debug("История отчётов: user_id=%s", user_id)
-        return await self.report_repository.get_user_reports_list(user_id)
+        rows = await self.report_repository.get_user_reports_list(user_id)
+        base = settings.MINIO_PUBLIC_BASE_URL
+        for row in rows:
+            row["report_url"] = build_report_public_url(
+                base,
+                row.get("bucket_name"),
+                row.get("object_key"),
+            )
+        return rows

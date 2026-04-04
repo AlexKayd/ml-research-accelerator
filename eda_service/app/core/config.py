@@ -96,6 +96,13 @@ class Settings(BaseSettings):
     MINIO_REPORTS_BUCKET: str = Field(default="eda-reports")
     MINIO_AUTO_CREATE_BUCKET: bool = Field(default=True)
     MINIO_PUBLIC_BASE_URL: str = Field(default="")
+    MINIO_REPORTS_BUCKET_ANONYMOUS_READ: bool = Field(
+        default=True,
+        description=(
+            "Если true, при инициализации бакета отчётов выставляется policy: анонимный s3:GetObject "
+            "для всех объектов в бакете (открытие report_url в браузере без presign)"
+        ),
+    )
 
     USER_SERVICE_URL: str = Field(default="http://user_service:8000")
     USER_SERVICE_HTTP_TIMEOUT_SECONDS: float = Field(default=30.0, ge=1.0, le=600.0)
@@ -177,6 +184,10 @@ class Settings(BaseSettings):
         )
         logger.info("  MINIO_ENDPOINT: %s", self.MINIO_ENDPOINT)
         logger.info("  MINIO_REPORTS_BUCKET: %s", self.MINIO_REPORTS_BUCKET)
+        logger.info(
+            "  MINIO_REPORTS_BUCKET_ANONYMOUS_READ: %s",
+            self.MINIO_REPORTS_BUCKET_ANONYMOUS_READ,
+        )
         logger.info("  USER_SERVICE_URL: %s", self.USER_SERVICE_URL)
         logger.info(
             "  JWT: ALGORITHM=%s SECRET_KEY=%s",

@@ -30,7 +30,10 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
     EDA_SERVICE_INTERNAL_TOKEN: str = ""
-    
+
+    # Публичный URL MinIO для браузера (без имени бакета в конце). Совпадает с MINIO_PUBLIC_BASE_URL в eda_service.
+    MINIO_PUBLIC_BASE_URL: str = ""
+
     @property
     def DATABASE_URL(self) -> str:
         return (
