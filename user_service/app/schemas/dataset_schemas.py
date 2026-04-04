@@ -75,6 +75,10 @@ class DatasetResponse(BaseModel):
         None,
         description="Ссылка на репозиторий",
     )
+    source_updated_at: Optional[datetime] = Field(
+        None,
+        description="Дата обновления датасета в источнике",
+    )
 
 
 class DatasetWithFilesResponse(DatasetResponse):

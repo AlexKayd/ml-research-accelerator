@@ -68,6 +68,7 @@ class DatasetRepository(IDatasetRepository):
                 DatasetORM.status,
                 DatasetORM.download_url,
                 DatasetORM.repository_url,
+                DatasetORM.source_updated_at,
                 FileORM.file_id,
                 FileORM.file_name,
                 FileORM.file_size_kb,
@@ -121,6 +122,7 @@ class DatasetRepository(IDatasetRepository):
                 DatasetORM.status,
                 DatasetORM.download_url,
                 DatasetORM.repository_url,
+                DatasetORM.source_updated_at,
                 FileORM.file_id,
                 FileORM.file_name,
                 FileORM.file_size_kb,
@@ -223,6 +225,7 @@ class DatasetRepository(IDatasetRepository):
                     "status": row.status,
                     "download_url": row.download_url,
                     "repository_url": row.repository_url,
+                    "source_updated_at": row.source_updated_at,
                     "is_favorite": bool(row.is_favorite),
                     "files": [],
                 }
