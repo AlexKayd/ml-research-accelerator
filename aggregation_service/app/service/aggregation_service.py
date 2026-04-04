@@ -304,7 +304,7 @@ class AggregationService:
         return Dataset(
             source=self._source,
             external_id=external_id,
-            title=metadata.get('title', external_id)[:500],
+            title=metadata.get('title', external_id),
             description=metadata.get('description'),
             tags=metadata.get('tags', []) or metadata.get('keywords', []),
             dataset_format=validation.get('format'),

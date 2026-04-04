@@ -12,11 +12,7 @@ from app.domain.exceptions import (
     DatabaseError,
     HashCalculationError,
 )
-from app.domain.value_objects import (
-    SourceType,
-    DatasetStatus,
-    DatasetFormat
-)
+from app.domain.value_objects import SourceType, DatasetStatus, DatasetFormat
 
 __all__ = [
     'Dataset',

@@ -70,6 +70,3 @@ def setup_logging(
     
     if settings.DEBUG:
         logger.debug("Режим отладки включён: включено подробное логирование")
-
-
- 
