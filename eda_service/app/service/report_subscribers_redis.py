@@ -138,7 +138,7 @@ async def schedule_user_report_attach_once(report_id: int, user_id: int) -> None
         celery_app.send_task,
         "app.celery.tasks.notify_user_service_report_ready_task",
         kwargs={"user_id": int(user_id), "report_id": int(report_id)},
-        queue=settings.CELERY_EDA_QUEUE,
+        queue=settings.CELERY_NOTIFY_QUEUE,
     )
 
     logger.debug(

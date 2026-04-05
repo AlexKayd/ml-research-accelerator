@@ -44,9 +44,7 @@ def create_celery_app() -> Celery:
             "eda_service.tasks.process_dataset_change": {"queue": settings.CELERY_EDA_QUEUE},
             "app.celery.tasks.delete_report_task": {"queue": settings.CELERY_EDA_QUEUE},
             "app.celery.tasks.detect_stuck_reports_task": {"queue": settings.CELERY_EDA_QUEUE},
-            "app.celery.tasks.notify_user_service_report_ready_task": {
-                "queue": settings.CELERY_EDA_QUEUE
-            },
+            "app.celery.tasks.notify_user_service_report_ready_task": {"queue": settings.CELERY_NOTIFY_QUEUE},
         },
     )
 
@@ -54,10 +52,11 @@ def create_celery_app() -> Celery:
     logger.info("  Broker: %s", settings.CELERY_BROKER_URL)
     logger.info("  Backend: %s", settings.CELERY_RESULT_BACKEND)
     logger.info(
-        "  Queues: eda=%s gen=%s waiter=%s",
+        "  Очереди: eda=%s gen=%s waiter=%s notify=%s",
         settings.CELERY_EDA_QUEUE,
         settings.CELERY_GEN_QUEUE,
         settings.CELERY_WAITER_QUEUE,
+        settings.CELERY_NOTIFY_QUEUE,
     )
     logger.info("  Периодических задач Beat: %s", len(beat_schedule))
     return celery_app

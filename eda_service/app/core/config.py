@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     CELERY_EDA_QUEUE: str = Field(default="eda")
     CELERY_GEN_QUEUE: str = Field(default="eda_gen")
     CELERY_WAITER_QUEUE: str = Field(default="eda_waiter")
+    CELERY_NOTIFY_QUEUE: str = Field(default="eda_notify")
     CELERY_WORKER_CONCURRENCY: int = Field(default=2, ge=1, le=64)
     CELERY_GEN_WORKER_CONCURRENCY: int = Field(default=2, ge=1, le=64)
 
@@ -114,7 +115,7 @@ class Settings(BaseSettings):
     )
 
     CORS_ORIGINS: str = Field(
-        default="http://localhost:3000,http://localhost:5173",
+        default="http://localhost:5173",
     )
 
     @property
@@ -156,10 +157,11 @@ class Settings(BaseSettings):
         )
         logger.info("  CELERY_BROKER: %s", self.CELERY_BROKER_URL)
         logger.info(
-            "  CELERY_QUEUES: eda=%s gen=%s waiter=%s",
+            "  CELERY_QUEUES: eda=%s gen=%s waiter=%s notify=%s",
             self.CELERY_EDA_QUEUE,
             self.CELERY_GEN_QUEUE,
             self.CELERY_WAITER_QUEUE,
+            self.CELERY_NOTIFY_QUEUE,
         )
         logger.info(
             "  CELERY_CONCURRENCY: default=%s gen=%s",

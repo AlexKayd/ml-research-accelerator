@@ -14,4 +14,4 @@ pandas==2.0.3
 numpy==1.25.2
 ydata-profiling==4.6.1
 python-jose[cryptography]==3.3.0
-certifi==2023.11.17ы
+certifi==2023.11.17

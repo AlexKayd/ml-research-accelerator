@@ -142,7 +142,7 @@ async def _generate_report_async(report_id: int) -> Dict[str, Any]:
                     celery_app.send_task,
                     "app.celery.tasks.notify_user_service_report_ready_task",
                     kwargs={"user_id": int(uid), "report_id": int(report_id)},
-                    queue=settings.CELERY_EDA_QUEUE,
+                    queue=settings.CELERY_NOTIFY_QUEUE,
                 )
             if subscribers:
                 logger.info(
@@ -197,7 +197,15 @@ async def _generate_report_async(report_id: int) -> Dict[str, Any]:
                     "Очистка подписчиков пропущена (состояние изменилось или новый processing): report_id=%s",
                     report_id,
                 )
-            logger.error("generate_report_task: report_id=%s завершён failed: %s", report_id, e)
+            if isinstance(e, ReportGenerationError):
+                logger.error(
+                    "generate_report_task: report_id=%s завершён failed: %s (reason=%s)",
+                    report_id,
+                    e.message,
+                    e.details.get("reason"),
+                )
+            else:
+                logger.error("generate_report_task: report_id=%s завершён failed: %s", report_id, e)
             return {"status": "failed", "report_id": report_id, "error": str(e)}
 
 

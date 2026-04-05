@@ -122,13 +122,24 @@ def register_exception_handlers(app: FastAPI) -> None:
         exc: DomainException,
     ) -> JSONResponse:
         http_status, code = _domain_to_http(exc)
-        logger.warning(
-            "Доменное исключение: %s (code=%s url=%s method=%s)",
-            exc.__class__.__name__,
-            code,
-            request.url,
-            request.method,
-        )
+        if isinstance(exc, ReportGenerationError):
+            logger.warning(
+                "Доменное исключение: %s (code=%s url=%s method=%s) report_id=%s reason=%s",
+                exc.__class__.__name__,
+                code,
+                request.url,
+                request.method,
+                exc.details.get("report_id"),
+                exc.details.get("reason"),
+            )
+        else:
+            logger.warning(
+                "Доменное исключение: %s (code=%s url=%s method=%s)",
+                exc.__class__.__name__,
+                code,
+                request.url,
+                request.method,
+            )
         return JSONResponse(
             status_code=http_status,
             content=_error_payload(code=code, message=exc.message, details=exc.details),

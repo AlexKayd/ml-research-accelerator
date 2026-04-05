@@ -66,7 +66,7 @@ class ReportGenerationError(DomainException):
 
     def __init__(self, report_id: int, reason: str):
         super().__init__(
-            f"Не удалось сгенерировать отчёт report_id={report_id}: {reason}",
+            "Не удалось сгенерировать отчёт",
             {"report_id": report_id, "reason": reason},
         )
 
