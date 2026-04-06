@@ -158,7 +158,7 @@ class DatasetRepository(IDatasetRepository):
         file_formats: Optional[List[str]] = None,
         max_size_mb: Optional[float] = None,
         tags: Optional[List[str]] = None,
-        limit: int = 100,
+        limit: Optional[int] = None,
         offset: int = 0,
     ) -> List[dict]:
         """Поиск датасетов + data-файлы + наличие отчёта у пользователя по каждому файлу"""
@@ -197,7 +197,10 @@ class DatasetRepository(IDatasetRepository):
             DatasetORM.source_updated_at.desc(),
             DatasetORM.dataset_id.desc(),
         )
-        stmt = stmt.limit(limit).offset(offset)
+        if offset:
+            stmt = stmt.offset(offset)
+        if limit is not None:
+            stmt = stmt.limit(limit)
 
         result = await self.session.execute(stmt)
         dataset_ids = [int(x) for x in result.scalars().all()]

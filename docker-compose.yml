@@ -73,6 +73,7 @@ services:
       MINIO_PUBLIC_BASE_URL: http://localhost:9000
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:9080}
     depends_on:
       postgres:
         condition: service_healthy
@@ -233,6 +234,7 @@ services:
       LC_ALL: C.UTF-8
       PYTHONIOENCODING: utf-8
       PYTHONUTF8: "1"
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:9080}
     depends_on:
       postgres:
         condition: service_healthy
@@ -264,7 +266,7 @@ services:
         exec celery -A app.core.celery_config worker
         --loglevel $$(echo "$$LOG_LEVEL" | tr '[:upper:]' '[:lower:]')
         --pool=prefork --concurrency $${CELERY_WORKER_CONCURRENCY:-3}
-        -Q $${CELERY_EDA_QUEUE:-eda}
+        -Q $${CELERY_EDA_QUEUE:-eda},$${CELERY_NOTIFY_QUEUE:-eda_notify}
     env_file:
       - .env
       - ./eda_service/.env
@@ -275,6 +277,7 @@ services:
       REDIS_URL: redis://redis:6379/1
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/1
+      CELERY_NOTIFY_QUEUE: ${CELERY_NOTIFY_QUEUE:-eda_notify}
       MINIO_ENDPOINT: minio:9000
       MINIO_PUBLIC_BASE_URL: http://localhost:9000
       USER_SERVICE_URL: http://user_service:8001
@@ -439,6 +442,24 @@ services:
       - app-net
     volumes:
       - ./eda_service/app:/app/app:ro
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_USER_SERVICE_URL: ${VITE_USER_SERVICE_URL:-http://localhost:8001}
+        VITE_EDA_SERVICE_URL: ${VITE_EDA_SERVICE_URL:-http://localhost:8003}
+    container_name: ml-platform-frontend
+    restart: unless-stopped
+    ports:
+      # 8080 часто занят на Windows — по умолчанию 9080; свой порт: FRONTEND_PORT в .env
+      - "${FRONTEND_PORT:-9080}:80"
+    depends_on:
+      - user_service
+      - eda_service
+    networks:
+      - app-net
 
 volumes:
   postgres_data:

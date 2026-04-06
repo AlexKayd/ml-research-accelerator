@@ -50,9 +50,9 @@ async def search_datasets(
         Query(description="Фильтр по тегам")
     ] = None,
     limit: Annotated[
-        int,
-        Query(ge=1, le=100, description="Количество результатов")
-    ] = 20,
+        Optional[int],
+        Query(ge=1, description="Количество результатов")
+    ] = None,
     offset: Annotated[
         int,
         Query(ge=0, description="Смещение для пагинации")

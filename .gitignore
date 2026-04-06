@@ -9,3 +9,9 @@ dist/
 .idea/
 
 .github/
+
+node_modules/
+*.local
+*.log
+npm-debug.log*
+dist-ssr/

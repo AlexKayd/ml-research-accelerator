@@ -18,7 +18,7 @@ class DatasetService:
         file_formats: Optional[List[str]] = None,
         max_size_mb: Optional[float] = None,
         tags: Optional[List[str]] = None,
-        limit: int = 20,
+        limit: Optional[int] = None,
         offset: int = 0
     ) -> List[dict]:
         """Поиск датасетов по каталогу + data-файлы + наличие отчёта по файлу для пользователя"""
@@ -31,10 +31,8 @@ class DatasetService:
         if tags is not None and len(tags) == 0:
             tags = None
 
-        if limit <= 0:
-            limit = 20
-        if limit > 200:
-            limit = 200
+        if limit is not None and limit <= 0:
+            limit = None
 
         logger.info(
             "Запрос поиска датасетов: user_id=%s query=%r sources=%s file_formats=%s "
