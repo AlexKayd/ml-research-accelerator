@@ -17,6 +17,7 @@ import { useReportGeneration } from '../../hooks/use_report_generation'
 
 const LIMIT_MIN = 1
 const MB_MIN = 0.005
+const PAGE_SIZE = 100
 
 function sanitizeMbInput(value: string): string {
   const s = value.replace(/[^\d.]/g, '')
@@ -36,16 +37,30 @@ export function CatalogPage() {
   const [formats, setFormats] = useState({ csv: true, json: true })
   const [maxSizeMb, setMaxSizeMb] = useState('')
   const [tagsRaw, setTagsRaw] = useState('')
-  const [limit, setLimit] = useState('100')
+  const [limit, setLimit] = useState('')
   const [datasets, setDatasets] = useState<DatasetWithFiles[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [maxSizeFieldError, setMaxSizeFieldError] = useState<string | null>(null)
   const [limitFieldError, setLimitFieldError] = useState<string | null>(null)
   const [searched, setSearched] = useState(false)
   const requestIdRef = useRef(0)
+  const pagingRef = useRef<{
+    lastParams: {
+      query?: string
+      sources?: string[]
+      file_formats?: string[]
+      max_size_mb?: number
+      tags?: string[]
+    } | null
+    offset: number
+    pageSize: number
+    pagingEnabled: boolean
+    canLoadMore: boolean
+  }>({ lastParams: null, offset: 0, pageSize: PAGE_SIZE, pagingEnabled: false, canLoadMore: false })
 
-  async function handleSearch() {
+  async function runSearch(append: boolean) {
     setError(null)
     setMaxSizeFieldError(null)
     setLimitFieldError(null)
@@ -79,8 +94,12 @@ export function CatalogPage() {
     }
 
     const myId = ++requestIdRef.current
-    setLoading(true)
     setSearched(true)
+
+    const pagingEnabled = limN == null || limN > PAGE_SIZE
+    let pageSize = PAGE_SIZE
+    if (!pagingEnabled && limN !== undefined) pageSize = limN
+
     const src: string[] = []
     if (sources.kaggle) src.push('kaggle')
     if (sources.uci) src.push('uci')
@@ -92,25 +111,67 @@ export function CatalogPage() {
       .map((t) => t.trim())
       .filter(Boolean)
 
+    const params = {
+      query: query.trim() || undefined,
+      sources: src.length ? src : undefined,
+      file_formats: fmt.length ? fmt : undefined,
+      max_size_mb: maxN,
+      tags: tags.length ? tags : undefined,
+    }
+
+    if (!append) {
+      pagingRef.current.lastParams = params
+      pagingRef.current.offset = 0
+      pagingRef.current.pageSize = pageSize
+      pagingRef.current.pagingEnabled = pagingEnabled
+      pagingRef.current.canLoadMore = false
+      setDatasets([])
+    }
+
+    const offset = append ? pagingRef.current.offset : 0
+    if (append) setLoadingMore(true)
+    else setLoading(true)
+
     try {
       const list = await searchDatasets({
-        query: query.trim() || undefined,
-        sources: src.length ? src : undefined,
-        file_formats: fmt.length ? fmt : undefined,
-        max_size_mb: maxN,
-        tags: tags.length ? tags : undefined,
-        limit: limN,
-        offset: 0,
+        ...params,
+        limit: pageSize,
+        offset,
       })
-      if (requestIdRef.current === myId) setDatasets(list)
+      if (requestIdRef.current === myId) {
+        pagingRef.current.canLoadMore = pagingRef.current.pagingEnabled && list.length === pageSize
+        if (append) {
+          pagingRef.current.offset += pageSize
+          setDatasets((prev) => prev.concat(list))
+        } else {
+          pagingRef.current.offset = pageSize
+          setDatasets(list)
+        }
+      }
     } catch (e) {
       if (requestIdRef.current === myId) {
         setError(e instanceof UserServiceError ? e.message : 'Ошибка поиска')
         setDatasets([])
+        pagingRef.current.canLoadMore = false
       }
     } finally {
-      if (requestIdRef.current === myId) setLoading(false)
+      if (requestIdRef.current === myId) {
+        setLoading(false)
+        setLoadingMore(false)
+      }
     }
+  }
+
+  async function handleSearch() {
+    await runSearch(false)
+  }
+
+  async function handleLoadMore() {
+    if (loading || loadingMore) return
+    if (!pagingRef.current.pagingEnabled) return
+    if (!pagingRef.current.canLoadMore) return
+    if (!pagingRef.current.lastParams) return
+    await runSearch(true)
   }
 
   return (
@@ -239,6 +300,13 @@ export function CatalogPage() {
               }}
             />
           ))}
+        {!loading && searched && !error && pagingRef.current.canLoadMore && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+            <Button variant="outlined" onClick={() => void handleLoadMore()} disabled={loadingMore}>
+              {loadingMore ? 'Загрузка…' : 'Показать ещё'}
+            </Button>
+          </Box>
+        )}
         {!loading && searched && !error && datasets.length === 0 && (
           <Typography color="text.secondary">Ничего не найдено.</Typography>
         )}
