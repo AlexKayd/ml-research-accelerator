@@ -110,7 +110,7 @@ class AggregationEventService:
             return
 
         if status == ReportStatus.PROCESSING:
-            logger.info("file_deleted: отчёт processing - ждём завершения, report_id=%s", report_id)
+            await self._enqueue_delete_waiter(report_id=report_id)
             return
 
         logger.info("file_deleted: статус=%s - пропуск (report_id=%s)", status.value, report_id)
@@ -124,7 +124,7 @@ class AggregationEventService:
         try:
             was_set = await client.set(name=key, value="1", nx=True, ex=ttl)
             if not was_set:
-                logger.debug("Ожидалка уже поставлена: report_id=%s", report_id)
+                logger.debug("regen_waiter_task: ожидалка уже поставлена: report_id=%s", report_id)
                 return
         finally:
             try:
@@ -139,6 +139,31 @@ class AggregationEventService:
             queue=self._settings.CELERY_WAITER_QUEUE,
         )
         logger.info("Поставлена regen_waiter_task: report_id=%s", report_id)
+
+    async def _enqueue_delete_waiter(self, report_id: int) -> None:
+        """Ставит ожидалку delete_waiter_task"""
+        key = f"eda:delete_waiter:{report_id}"
+        ttl = int(self._settings.WAITER_MAX_WAIT_MINUTES) * 60 + 60
+
+        client = redis.from_url(self._settings.REDIS_URL, encoding="utf-8", decode_responses=True)
+        try:
+            was_set = await client.set(name=key, value="1", nx=True, ex=ttl)
+            if not was_set:
+                logger.debug("delete_waiter: ожидалка уже поставлена: report_id=%s", report_id)
+                return
+        finally:
+            try:
+                await client.aclose()
+            except Exception:
+                pass
+
+        await asyncio.to_thread(
+            celery_app.send_task,
+            "app.celery.tasks.delete_waiter_task",
+            kwargs={"report_id": report_id},
+            queue=self._settings.CELERY_WAITER_QUEUE,
+        )
+        logger.info("Поставлена delete_waiter_task: report_id=%s", report_id)
 
 
 class RegenWaiterService:
@@ -182,6 +207,60 @@ class RegenWaiterService:
     async def _clear_dedup_key(self, report_id: int) -> None:
         """Удаляет ключ ожидалки в Redis"""
         key = f"eda:regen_waiter:{report_id}"
+        client = redis.from_url(self._settings.REDIS_URL, encoding="utf-8", decode_responses=True)
+        try:
+            await client.delete(key)
+        finally:
+            try:
+                await client.aclose()
+            except Exception:
+                pass
+
+
+class DeleteWaiterService:
+
+    def __init__(self, report_repository: IReportRepository) -> None:
+        self._settings = get_settings()
+        self._reports = report_repository
+
+    async def wait_and_delete(self, report_id: int) -> None:
+        """Ждёт смену статуса отчёта, затем ставит delete_report_task"""
+        deadline = datetime.now() + timedelta(minutes=int(self._settings.WAITER_MAX_WAIT_MINUTES))
+        poll = int(self._settings.WAITER_POLL_INTERVAL_SECONDS)
+
+        while datetime.now() < deadline:
+            report = await self._reports.get_by_id(report_id)
+            if report is None:
+                logger.info("delete_waiter: отчёт исчез из бд, report_id=%s", report_id)
+                await self._clear_dedup_key(report_id)
+                return
+
+            if report.status in (ReportStatus.COMPLETED, ReportStatus.FAILED):
+                await self._clear_dedup_key(report_id)
+                await asyncio.to_thread(
+                    celery_app.send_task,
+                    "app.celery.tasks.delete_report_task",
+                    kwargs={"report_id": report_id},
+                    queue=self._settings.CELERY_EDA_QUEUE,
+                )
+                logger.info(
+                    "delete_waiter: поставлена delete_report_task report_id=%s",
+                    report_id,
+                )
+                return
+
+            if report.status == ReportStatus.DELETING:
+                logger.info("delete_waiter: отчёт уже deleting, report_id=%s", report_id)
+                await self._clear_dedup_key(report_id)
+                return
+
+            await asyncio.sleep(poll)
+
+        logger.warning("delete_waiter: таймаут ожидания, report_id=%s", report_id)
+        await self._clear_dedup_key(report_id)
+
+    async def _clear_dedup_key(self, report_id: int) -> None:
+        key = f"eda:delete_waiter:{report_id}"
         client = redis.from_url(self._settings.REDIS_URL, encoding="utf-8", decode_responses=True)
         try:
             await client.delete(key)

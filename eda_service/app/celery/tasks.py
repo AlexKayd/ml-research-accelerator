@@ -24,6 +24,7 @@ from app.repository.report_repository import ReportRepository
 from app.service.aggregation_service import (
     AggregationEventService,
     DeleteReportService,
+    DeleteWaiterService,
     RegenWaiterService,
 )
 from app.service.checking_stuck_report import CheckingStuckReport
@@ -220,6 +221,14 @@ async def _regen_waiter_async(report_id: int) -> Dict[str, Any]:
     return {"status": "ok", "report_id": report_id}
 
 
+async def _delete_waiter_async(report_id: int) -> Dict[str, Any]:
+    """Задача-ожидалка для отложенного удаления"""
+    async with get_db_session() as session:
+        service = DeleteWaiterService(report_repository=ReportRepository(session))
+        await service.wait_and_delete(report_id)
+    return {"status": "ok", "report_id": report_id}
+
+
 async def _delete_report_async(report_id: int) -> Dict[str, Any]:
     """Удаление отчёта"""
     async with get_db_session() as session:
@@ -282,6 +291,18 @@ def regen_waiter_task(self, report_id: int) -> Dict[str, Any]:
     """Задача-ожидалка для отложенной перегенерации"""
     logger.info("Celery: старт regen_waiter_task report_id=%s", report_id)
     return run_async_with_engine_cleanup(lambda: _regen_waiter_async(report_id))
+
+
+@shared_task(
+    bind=True,
+    name="app.celery.tasks.delete_waiter_task",
+    max_retries=0,
+    acks_late=True,
+)
+def delete_waiter_task(self, report_id: int) -> Dict[str, Any]:
+    """Задача-ожидалка для отложенного удаления"""
+    logger.info("Celery: старт delete_waiter_task report_id=%s", report_id)
+    return run_async_with_engine_cleanup(lambda: _delete_waiter_async(report_id))
 
 
 @shared_task(

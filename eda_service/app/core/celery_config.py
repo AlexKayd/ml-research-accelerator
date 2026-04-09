@@ -41,6 +41,7 @@ def create_celery_app() -> Celery:
         task_routes={
             "app.celery.tasks.generate_report_task": {"queue": settings.CELERY_GEN_QUEUE},
             "app.celery.tasks.regen_waiter_task": {"queue": settings.CELERY_WAITER_QUEUE},
+            "app.celery.tasks.delete_waiter_task": {"queue": settings.CELERY_WAITER_QUEUE},
             "eda_service.tasks.process_dataset_change": {"queue": settings.CELERY_EDA_QUEUE},
             "app.celery.tasks.delete_report_task": {"queue": settings.CELERY_EDA_QUEUE},
             "app.celery.tasks.detect_stuck_reports_task": {"queue": settings.CELERY_EDA_QUEUE},
