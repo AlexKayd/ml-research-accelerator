@@ -103,7 +103,7 @@ async def test_refresh_token_returns_new_access_same_refresh():
 
 
 @pytest.mark.asyncio
-async def test_access_token_validation_and_get_current_user():
+async def test_refresh_token_user_missing_raises_404():
     """Проверяет refresh по токену, где user_id отсутствует в репозитории то 404 USER_NOT_FOUND"""
     repo = FakeUserRepo()
     svc = AuthService(user_repository=repo, secret_key="secret", algorithm="HS256")
