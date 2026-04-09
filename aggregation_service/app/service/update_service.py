@@ -530,6 +530,7 @@ class UpdateService:
                 self._eda_notifier.add_file_notification(
                     event_type='file_deleted',
                     dataset_id=dataset.dataset_id,
+                    file_id=getattr(db_file, "file_id", None),
                     file_name=file_name,
                     external_id=dataset.external_id,
                     source=self._source
@@ -637,6 +638,7 @@ class UpdateService:
                     self._eda_notifier.add_file_notification(
                         event_type='file_updated',
                         dataset_id=dataset.dataset_id,
+                        file_id=getattr(db_file, "file_id", None),
                         file_name=file_name,
                         file_hash=updated_file.file_hash,
                         external_id=dataset.external_id,

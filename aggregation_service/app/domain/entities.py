@@ -8,6 +8,7 @@ from app.domain.exceptions import InvalidDatasetError, InvalidFileError
 @dataclass
 class File:
 
+    file_id: Optional[int] = None
     file_name: str
     file_size_kb: float
     is_data: bool = True
@@ -33,6 +34,7 @@ class File:
     
     def to_dict(self) -> dict:
         return {
+            "file_id": self.file_id,
             "file_name": self.file_name,
             "file_size_kb": self.file_size_kb,
             "file_hash": self.file_hash,

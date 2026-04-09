@@ -386,6 +386,7 @@ class DatasetRepository(IDatasetRepository):
     
     def _file_orm_to_domain(self, file_orm: FileORM) -> File:
         file = File(
+            file_id=int(file_orm.file_id) if file_orm.file_id is not None else None,
             file_name=file_orm.file_name,
             file_size_kb=float(file_orm.file_size_kb) if file_orm.file_size_kb else 0.0,
             is_data=file_orm.is_data,
