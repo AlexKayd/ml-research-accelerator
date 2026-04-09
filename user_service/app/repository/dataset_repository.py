@@ -1,6 +1,6 @@
 import logging
 from typing import List, Optional
-from sqlalchemy import cast, case, func, literal, select, ARRAY, Text, and_
+from sqlalchemy import cast, case, func, literal, select, ARRAY, String, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.interfaces import IDatasetRepository
 from app.repository.models import DatasetORM, FileORM, FavoriteDatasetORM, ReportORM, UserReportORM
@@ -188,7 +188,7 @@ class DatasetRepository(IDatasetRepository):
             conditions.append(DatasetORM.dataset_size_kb <= max_kb)
 
         if tags:
-            conditions.append(DatasetORM.tags.op("&&")(cast(tags, ARRAY(Text))))
+            conditions.append(DatasetORM.tags.op("&&")(cast(tags, ARRAY(String))))
 
         stmt = select(DatasetORM.dataset_id).where(DatasetORM.status == "active")
         if conditions:
