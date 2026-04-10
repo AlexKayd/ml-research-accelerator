@@ -229,8 +229,6 @@ class ReportGenerator:
         logger.info("Генерация EDA отчёта: file=%s", file_path.name)
 
         def _sync_build() -> str:
-            # Ленивые импорты: чтобы unit/integration тесты могли запускаться без тяжёлых зависимостей,
-            # если генерация HTML не требуется в конкретном тесте.
             import pandas as pd
             from ydata_profiling import ProfileReport
 

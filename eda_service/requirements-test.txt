@@ -1,0 +1,15 @@
+fastapi==0.104.1
+sqlalchemy==2.0.23
+asyncpg==0.29.0
+pydantic==2.5.2
+pydantic-settings==2.1.0
+celery==5.3.4
+redis==5.0.1
+aiohttp==3.9.1
+aiofiles==23.2.1
+minio==7.2.0
+python-jose[cryptography]==3.3.0
+certifi==2023.11.17
+pytest==8.3.3
+pytest-asyncio==0.24.0
+testcontainers[postgres]==4.9.0
