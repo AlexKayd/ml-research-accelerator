@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { generateReport, getReportStatus } from '../api/eda_service'
+import { EdaServiceError, generateReport, getReportStatus } from '../api/eda_service'
 import { useReportSse } from '../app/ReportSseContext'
 
 const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000
@@ -65,7 +65,17 @@ export function useReportGeneration() {
               if (s.status === 'failed') {
                 done({ ok: false, error: s.error_message ?? 'Генерация завершилась с ошибкой' })
               }
-            } catch {
+            } catch (e) {
+              if (e instanceof EdaServiceError) {
+                if (e.status === 410) {
+                  done({ ok: false, error: 'Файл удаляется и недоступен' })
+                  return
+                }
+                if (e.status === 404) {
+                  done({ ok: false, error: 'Файл был удалён или недоступен' })
+                  return
+                }
+              }
             }
           }
 
@@ -76,6 +86,12 @@ export function useReportGeneration() {
             }
             if (ev.event === 'report_failed') {
               done({ ok: false, error: ev.error_message })
+            }
+            if (ev.event === 'report_deleting') {
+              done({ ok: false, error: 'Файл удаляется и недоступен' })
+            }
+            if (ev.event === 'report_deleted') {
+              done({ ok: false, error: 'Файл был удалён или недоступен' })
             }
           })
 
