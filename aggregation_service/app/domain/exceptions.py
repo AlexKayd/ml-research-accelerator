@@ -1,5 +1,4 @@
 from typing import Optional
-from app.core.config import get_settings
 
 
 class DomainException(Exception):
@@ -46,7 +45,9 @@ class DatasetTooLargeError(DomainException):
         max_size_kb: Optional[float] = None,
     ):
         if max_size_kb is None:
-            max_size_kb = float(get_settings().MAX_FILE_SIZE_KB)
+            from app.core.config import get_settings as _get_settings
+
+            max_size_kb = float(_get_settings().MAX_FILE_SIZE_KB)
 
         message = (f"Файл '{file_name}' превышает максимальный размер: "
                   f"{file_size_kb:.2f} КБ (максимум: {max_size_kb} КБ)")

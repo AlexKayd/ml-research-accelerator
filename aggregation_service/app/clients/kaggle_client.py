@@ -2,15 +2,14 @@ import asyncio
 import json
 import logging
 import os
-import re
 import tempfile
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
-from kaggle.api.kaggle_api_extended import KaggleApi
-from app.core.config import get_settings
 from app.clients.base_client import BaseClient
+from app.core.config import get_settings
+from kaggle.api.kaggle_api_extended import KaggleApi
 from app.domain.exceptions import (
     SourceUnavailableError,
     DatasetNotFoundError,
@@ -20,9 +19,6 @@ from app.domain.exceptions import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-_TABULAR_TAG_RE = re.compile(r"\btabular\b", re.IGNORECASE)
 
 
 def _is_kaggle_api_http_404(exc: BaseException) -> bool:
@@ -151,18 +147,6 @@ def _keywords_from_kaggle_metadata(raw: Dict[str, Any]) -> List[str]:
             elif isinstance(t, str) and t.strip():
                 out.append(t.strip())
     return out
-
-
-def kaggle_metadata_has_tabular_tag(metadata: Dict[str, Any]) -> bool:
-    """True если есть tabular"""
-    tags = metadata.get("keywords")
-
-    if not isinstance(tags, list):
-        return False
-    for tag in tags:
-        if _TABULAR_TAG_RE.search(str(tag)):
-            return True
-    return False
 
 
 def _parse_last_updated_from_metadata(raw: Dict[str, Any]) -> Optional[datetime]:

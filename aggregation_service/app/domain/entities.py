@@ -8,12 +8,12 @@ from app.domain.exceptions import InvalidDatasetError, InvalidFileError
 @dataclass
 class File:
 
-    file_id: Optional[int] = None
     file_name: str
     file_size_kb: float
     is_data: bool = True
     file_hash: Optional[str] = None
     file_updated_at: Optional[datetime] = None
+    file_id: Optional[int] = None
     
     def __post_init__(self):
 

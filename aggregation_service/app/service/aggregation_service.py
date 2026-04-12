@@ -10,7 +10,7 @@ from app.domain.exceptions import DatasetTooLargeError, InvalidFileError, NoVali
 from app.core.config import get_settings
 from app.service.file_processor import FileProcessor
 from app.service.log_labels import format_source_log
-from app.clients.kaggle_client import kaggle_metadata_has_tabular_tag
+from app.clients.kaggle_metadata_utils import kaggle_metadata_has_tabular_tag
 
 logger = logging.getLogger(__name__)
 
