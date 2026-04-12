@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     WAITER_POLL_INTERVAL_SECONDS: int = Field(default=5, ge=1, le=300)
     WAITER_MAX_WAIT_MINUTES: int = Field(default=120, ge=1, le=1440)
 
-    GENERATE_RATE_LIMIT_PER_MINUTE: int = Field(default=5, ge=1, le=1000)
+    GENERATE_RATE_LIMIT_PER_MINUTE: int = Field(default=5, ge=1, le=100000)
 
     REPORT_SUBSCRIBERS_REDIS_TTL_SECONDS: int = Field(
         default=604800,
