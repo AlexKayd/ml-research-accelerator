@@ -62,11 +62,11 @@ class Settings(BaseSettings):
 
     REPORT_STALE_AFTER_HOURS: int = Field(default=24, ge=1, le=168)
     REPORT_STUCK_AFTER_MINUTES: int = Field(default=30, ge=1, le=720)
-    STUCK_REPORTS_BEAT_INTERVAL_HOURS: int = Field(
-        default=1,
+    STUCK_REPORTS_BEAT_INTERVAL_MINUTES: int = Field(
+        default=30,
         ge=1,
-        le=24,
-        description="Интервал Celery Beat для detect_stuck_reports_task (часы)",
+        le=1440,
+        description="Интервал Celery Beat для detect_stuck_reports_task (минуты)",
     )
     WAITER_POLL_INTERVAL_SECONDS: int = Field(default=5, ge=1, le=300)
     WAITER_MAX_WAIT_MINUTES: int = Field(default=120, ge=1, le=1440)
@@ -172,6 +172,10 @@ class Settings(BaseSettings):
             "  REPORT_POLICY: stale_after=%sh stuck_after=%sm",
             self.REPORT_STALE_AFTER_HOURS,
             self.REPORT_STUCK_AFTER_MINUTES,
+        )
+        logger.info(
+            "  STUCK_DETECTOR: beat_interval_minutes=%s",
+            self.STUCK_REPORTS_BEAT_INTERVAL_MINUTES,
         )
         logger.info(
             "  REPORT_SUBSCRIBERS: ttl=%ss attach_cooldown=%ss",

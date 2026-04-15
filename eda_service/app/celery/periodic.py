@@ -8,7 +8,9 @@ logger = logging.getLogger(__name__)
 
 def get_beat_schedule() -> Dict[str, Dict[str, Any]]:
     """Периодическая проверка зависших отчётов в статусе processing"""
-    interval = timedelta(hours=int(settings.STUCK_REPORTS_BEAT_INTERVAL_HOURS))
+    minutes = int(settings.STUCK_REPORTS_BEAT_INTERVAL_MINUTES)
+
+    interval = timedelta(minutes=minutes)
     schedule = {
         "eda-detect-stuck-reports": {
             "task": "app.celery.tasks.detect_stuck_reports_task",
@@ -19,7 +21,7 @@ def get_beat_schedule() -> Dict[str, Dict[str, Any]]:
         }
     }
     logger.debug(
-        "Beat EDA: detect_stuck_reports_task каждые %s ч",
-        settings.STUCK_REPORTS_BEAT_INTERVAL_HOURS,
+        "Beat EDA: detect_stuck_reports_task каждые %s мин",
+        minutes,
     )
     return schedule
