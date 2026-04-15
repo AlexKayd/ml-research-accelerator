@@ -229,18 +229,91 @@ class ReportGenerator:
         logger.info("Генерация EDA отчёта: file=%s", file_path.name)
 
         def _sync_build() -> str:
+            import json
             import pandas as pd
             from ydata_profiling import ProfileReport
 
-            df = pd.read_csv(file_path) if file_path.suffix.lower() == ".csv" else pd.read_json(file_path)
+            suf = file_path.suffix.lower()
+            if suf == ".csv":
+                df = None
+                encodings = ("utf-8", "utf-8-sig", "cp1251")
+                last_err: Exception | None = None
+                for enc in encodings:
+                    try:
+                        df = pd.read_csv(file_path, encoding=enc, low_memory=False)
+                        last_err = None
+                        break
+                    except UnicodeDecodeError as e:
+                        last_err = e
+                if df is None:
+                    try:
+                        df = pd.read_csv(file_path, low_memory=False)
+                    except Exception as e:
+                        raise ValueError(
+                            f"Не удалось прочитать CSV (encoding tried: {', '.join(encodings)})"
+                        ) from (last_err or e)
+            else:
+                try:
+                    if suf == ".jsonl":
+                        df = pd.read_json(file_path, lines=True)
+                    else:
+                        df = pd.read_json(file_path)
+                except ValueError as e:
+                    try:
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            raw = json.load(f)
+                    except Exception as json_err:
+                        raise ValueError(f"Не удалось распарсить JSON: {json_err}") from e
+
+                    if isinstance(raw, list):
+                        df = pd.json_normalize(raw)
+                    elif isinstance(raw, dict):
+                        if "data" in raw and isinstance(raw.get("data"), list):
+                            df = pd.json_normalize(raw["data"])
+                        else:
+                            try:
+                                df = pd.DataFrame(raw)
+                            except Exception as inner:
+                                raise ValueError(
+                                    "JSON не является табличным или содержит массивы разной длины"
+                                ) from inner
+                    else:
+                        raise ValueError("JSON не является табличным") from e
+
+            if df is None or getattr(df, "empty", False):
+                raise ValueError("Данные пустые: DataFrame не содержит строк/колонок")
+
             profile = ProfileReport(
                 df,
-                minimal=True,
                 title=f"EDA отчёт: {file_path.name}",
+                minimal=False,
+                
+                correlations={
+                    "pearson": {"calculate": True},
+                    "spearman": {"calculate": False},
+                    "kendall": {"calculate": False},
+                    "phi_k": {"calculate": False},
+                    "cramers": {"calculate": False}
+                },
+                
+                missing_diagrams={
+                    "bar": True,
+                    "matrix": True,
+                    "heatmap": False,
+                    "dendrogram": False
+                },
+                
+                interactions=None,
+                duplicates=None,
+                samples=None,
             )
-            return profile.to_html()
+            html = profile.to_html()
+            dur = (datetime.now() - start).total_seconds()
+            logger.info(
+                "EDA отчёт сгенерирован: file=%s, время=%.2f сек",
+                file_path.name,
+                dur,
+            )
+            return html
 
-        html = await asyncio.to_thread(_sync_build)
-        dur = (datetime.now() - start).total_seconds()
-        logger.info("EDA отчёт сгенерирован за %.2f сек", dur)
-        return html
+        return await asyncio.to_thread(_sync_build)
